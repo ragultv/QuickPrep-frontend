@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Create an Axios instance with a base URL from environment variables
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000',
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'https://quickprep.onrender.com',
 });
 
 // Add a request interceptor to attach the token to every request
