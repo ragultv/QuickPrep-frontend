@@ -19,11 +19,11 @@ interface UserStats {
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const [isLoading, setIsLoading]       = useState(true);
-  const [error, setError]               = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
   const [recentSessions, setRecentSessions] = useState<RecentSession[]>([]);
-  const [userStats, setUserStats]       = useState<UserStats | null>(null);
-  const [userName, setUserName]         = useState('');
+  const [userStats, setUserStats] = useState<UserStats | null>(null);
+  const [userName, setUserName] = useState('');
 
   // ── 1) BLOCK BACK BUTTON ───────────────────────────────────────────────
   useEffect(() => {
@@ -54,25 +54,51 @@ export default function Dashboard() {
 
       try {
         setIsLoading(true);
-        const [userRes, sessionRes, statsRes] = await Promise.all([
-          axios.get('http://localhost:8000/users/me', {
-            headers: { Authorization: `Bearer ${token}` },
-            signal: controller.signal,
-          }),
-          axios.get('http://localhost:8000/user_stats/recent_sessions', {
-            headers: { Authorization: `Bearer ${token}` },
-            signal: controller.signal,
-          }),
-          axios.get<UserStats>('http://localhost:8000/user_stats/my_stats', {
-            headers: { Authorization: `Bearer ${token}` },
-            signal: controller.signal,
-          }),
-        ]);
-
+        
+        // First get the user info
+        const userRes = await axios.get('http://localhost:8000/users/me', {
+          headers: { Authorization: `Bearer ${token}` },
+          signal: controller.signal,
+        });
+        
         if (isMounted) {
           setUserName(userRes.data.name);
-          setRecentSessions(sessionRes.data);
-          setUserStats(statsRes.data);
+        }
+        
+        // Then try to get sessions and stats separately to handle errors better
+        try {
+          const sessionRes = await axios.get('http://localhost:8000/user_stats/recent_sessions', {
+            headers: { Authorization: `Bearer ${token}` },
+            signal: controller.signal,
+          });
+          
+          if (isMounted) {
+            // Ensure we always set an array, even if the API returns null or undefined
+            setRecentSessions(Array.isArray(sessionRes.data) ? sessionRes.data : []);
+          }
+        } catch (sessionErr: any) {
+          console.log('Failed to load sessions:', sessionErr);
+          // Don't set an error, just use empty array
+          if (isMounted) {
+            setRecentSessions([]);
+          }
+        }
+        
+        try {
+          const statsRes = await axios.get<UserStats>('http://localhost:8000/user_stats/my_stats', {
+            headers: { Authorization: `Bearer ${token}` },
+            signal: controller.signal,
+          });
+          
+          if (isMounted) {
+            setUserStats(statsRes.data || { total_quiz: 0, best_score: 0, average_time: '0m' });
+          }
+        } catch (statsErr: any) {
+          console.log('Failed to load stats:', statsErr);
+          // Use default stats
+          if (isMounted) {
+            setUserStats({ total_quiz: 0, best_score: 0, average_time: '0m' });
+          }
         }
       } catch (err: any) {
         if (!isMounted) return;
@@ -134,6 +160,9 @@ export default function Dashboard() {
     }
   };
 
+  // Make sure we have default values for userStats to avoid null reference errors
+  const stats = userStats || { total_quiz: 0, best_score: 0, average_time: '0m' };
+
   return (
     <div className="space-y-6">
       {/* Welcome Section */}
@@ -161,7 +190,7 @@ export default function Dashboard() {
             <Trophy className="h-8 w-8 text-yellow-500" />
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-500">Best Score</p>
-              <p className="text-2xl font-semibold text-gray-900">{userStats?.best_score}%</p>
+              <p className="text-2xl font-semibold text-gray-900">{stats.best_score}%</p>
             </div>
           </div>
         </div>
@@ -170,7 +199,7 @@ export default function Dashboard() {
             <BookOpen className="h-8 w-8 text-blue-500" />
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-500">Total Quizzes</p>
-              <p className="text-2xl font-semibold text-gray-900">{userStats?.total_quiz}</p>
+              <p className="text-2xl font-semibold text-gray-900">{stats.total_quiz}</p>
             </div>
           </div>
         </div>
@@ -179,7 +208,7 @@ export default function Dashboard() {
             <Clock className="h-8 w-8 text-green-500" />
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-500">Average Time</p>
-              <p className="text-2xl font-semibold text-gray-900">15m</p>
+              <p className="text-2xl font-semibold text-gray-900">{stats.average_time}</p>
             </div>
           </div>
         </div>
@@ -189,22 +218,18 @@ export default function Dashboard() {
       <div className="bg-white rounded-xl shadow-lg p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Quizzes</h2>
         <div className="space-y-4">
-          {recentSessions.length > 0 ? (
+          {recentSessions && recentSessions.length > 0 ? (
             recentSessions.map((session) => (
               <Link
-                to={`/quiz-result/${session.session_id}`} // Navigate to the quiz result page
+                to={`/quiz-result/${session.session_id}`}
                 key={session.session_id}
                 className="block"
               >
                 <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                   <div>
-                    {/* Display the topic as the quiz title */}
-                    <h3 className="font-medium text-gray-900">{session.topic +' ' + session.difficulty +' '+'Test'}</h3>
+                    <h3 className="font-medium text-gray-900">{session.topic + ' ' + session.difficulty + ' ' + 'Test'}</h3>
                     <p className="text-sm text-gray-500">Time Taken: {session.time_taken}</p>
                     <p className="text-sm text-gray-500">Questions: {session.num_questions}</p>
-                    {/* If you decide to include a date property in the API later,
-                        you can display it here */}
-                    {/* <p className="text-sm text-gray-500">{session.date}</p> */}
                   </div>
                   <div className="flex items-center">
                     <span
@@ -223,7 +248,15 @@ export default function Dashboard() {
               </Link>
             ))
           ) : (
-            <p className="text-gray-500">No recent sessions available.</p>
+            <div className="flex flex-col items-center justify-center p-8 bg-gray-50 rounded-lg">
+              <p className="text-gray-500 text-center mb-4">You haven't taken any quizzes yet. Generate your first quiz to see your results here!</p>
+              <button
+                onClick={handleGenerateQuiz}
+                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+              >
+                Generate Your First Quiz
+              </button>
+            </div>
           )}
         </div>
       </div>
