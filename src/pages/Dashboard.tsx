@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { BookOpen, Trophy, Clock } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { users, userStats as userStatsApi } from '../utils/api';
 
 interface RecentSession {
   session_id: string;
@@ -56,10 +56,7 @@ export default function Dashboard() {
         setIsLoading(true);
         
         // First get the user info
-        const userRes = await axios.get('http://localhost:8000/users/me', {
-          headers: { Authorization: `Bearer ${token}` },
-          signal: controller.signal,
-        });
+        const userRes = await users.getMe();
         
         if (isMounted) {
           setUserName(userRes.data.name);
@@ -67,10 +64,7 @@ export default function Dashboard() {
         
         // Then try to get sessions and stats separately to handle errors better
         try {
-          const sessionRes = await axios.get('http://localhost:8000/user_stats/recent_sessions', {
-            headers: { Authorization: `Bearer ${token}` },
-            signal: controller.signal,
-          });
+          const sessionRes = await userStatsApi.getRecentSessions();
           
           if (isMounted) {
             // Ensure we always set an array, even if the API returns null or undefined
@@ -85,10 +79,7 @@ export default function Dashboard() {
         }
         
         try {
-          const statsRes = await axios.get<UserStats>('http://localhost:8000/user_stats/my_stats', {
-            headers: { Authorization: `Bearer ${token}` },
-            signal: controller.signal,
-          });
+          const statsRes = await userStatsApi.getMyStats();
           
           if (isMounted) {
             setUserStats(statsRes.data || { total_quiz: 0, best_score: 0, average_time: '0m' });
@@ -148,9 +139,7 @@ export default function Dashboard() {
     }
 
     try {
-      await axios.get('http://localhost:8000/users/me', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await users.getMe();
       navigate('/quiz/create');
     } catch (error: any) {
       if (error.response?.status === 401) {
