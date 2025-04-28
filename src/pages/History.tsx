@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { userStats } from "../utils/api";
+import { BookOpen } from "lucide-react";
 
 interface RecentSession {
   session_id: string;
@@ -18,44 +19,85 @@ export default function History() {
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchHistory = async () => {
-      try {
-        const token = localStorage.getItem("access_token");
-        if (!token) {
-          setError("You must be logged in to view your history.");
-          setLoading(false);
-          return;
-        }
-
-        const response = await userStats.getHistory();
-        setSessions(response.data);
-      } catch (err: any) {
-        if (err.response?.status === 401) {
-          setError("Unauthorized. Please log in again.");
-          navigate("/login");
-        } else {
-          setError("Failed to fetch quiz session history.");
-        }
-      } finally {
+  const fetchHistory = async () => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const token = localStorage.getItem("access_token");
+      if (!token) {
+        setError("You must be logged in to view your history.");
         setLoading(false);
+        return;
       }
-    };
 
+      const response = await userStats.getHistory();
+      
+      // Check if response.data exists and is an array
+      if (Array.isArray(response.data)) {
+        setSessions(response.data);
+      } else {
+        // If the API returns something other than an array, use an empty array
+        console.warn("API did not return an array for session history:", response.data);
+        setSessions([]);
+      }
+    } catch (err: any) {
+      console.error("Error fetching history:", err);
+      
+      if (err.response?.status === 401) {
+        localStorage.removeItem("access_token");
+        navigate("/login", { replace: true });
+      } else {
+        // Don't set error - we'll handle it as an empty state instead
+        setSessions([]);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchHistory();
   }, [navigate]);
 
+  const handleGenerateQuiz = () => {
+    navigate("/quiz/create");
+  };
+
+  const handleRetry = () => {
+    fetchHistory();
+  };
+
   if (loading) {
-    return <div className="text-center mt-10">Loading...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600" />
+      </div>
+    );
   }
 
-  if (error) {
-    return <div className="text-center mt-10 text-red-500">{error}</div>;
+  // Show the login error if user is not authenticated
+  if (error && error.includes("logged in")) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen gap-4">
+        <p className="text-red-500">{error}</p>
+        <button 
+          onClick={() => navigate("/login")} 
+          className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+        >
+          Go to Login
+        </button>
+      </div>
+    );
   }
 
   return (
     <div className="max-w-4xl mx-auto p-4 space-y-6">
-      <h1 className="text-2xl font-bold">Quiz Session History</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Quiz Session History</h1>
+        
+      </div>
+      
       <div className="bg-white rounded-xl shadow-lg p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Quizzes</h2>
         <div className="space-y-4">
@@ -98,7 +140,25 @@ export default function History() {
               </Link>
             ))
           ) : (
-            <p className="text-gray-500">No recent sessions available.</p>
+            <div className="flex flex-col items-center justify-center p-8 bg-gray-50 rounded-lg">
+              <p className="text-gray-500 text-center mb-4">You haven't taken any quizzes yet. Generate your first quiz to see your history here!</p>
+              <div className="flex gap-4">
+                <button
+                  onClick={handleGenerateQuiz}
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                >
+                  Generate Your First Quiz
+                </button>
+                {error && (
+                  <button
+                    onClick={handleRetry}
+                    className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
+                  >
+                    Retry Loading
+                  </button>
+                )}
+              </div>
+            </div>
           )}
         </div>
       </div>
