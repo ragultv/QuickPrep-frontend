@@ -21,15 +21,30 @@ const LoginForm = ({ onLogin }: LoginFormProps) => {
     setIsLoading(true);
 
     try {
+      console.log('Attempting login with:', { email: formData.email });
       const res = await auth.login(formData.email, formData.password);
-      localStorage.setItem('access_token', res.data.access_token);
-      onLogin?.();
-      
-      // Redirect to the intended destination or home
-      const from = location.state?.from?.pathname || '/';
-      navigate(from, { replace: true });
+      console.log('Login response:', res);
+
+      if (res.data.access_token) {
+        localStorage.setItem('access_token', res.data.access_token);
+        onLogin?.();
+        
+        // Redirect to the intended destination or home
+        const from = location.state?.from?.pathname || '/';
+        navigate(from, { replace: true });
+      } else {
+        console.error('No access token in response:', res.data);
+        setError('Invalid login response. Please try again.');
+      }
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Login failed. Please try again.');
+      console.error('Login error:', err);
+      if (err.response?.data?.detail) {
+        setError(err.response.data.detail);
+      } else if (err.message) {
+        setError(err.message);
+      } else {
+        setError('Login failed. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }
