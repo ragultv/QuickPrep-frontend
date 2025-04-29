@@ -31,7 +31,7 @@ export default function Profile() {
 
   const handleLogout = () => {
     localStorage.clear();
-    window.location.href = '/login';
+    navigate('/login');
   };
 
   if (!profile) return <div className="text-center py-20">Loading profile...</div>;
