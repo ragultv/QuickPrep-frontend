@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
-import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { users, auth } from '../utils/api';
 
 const RegisterForm = () => {
   const navigate = useNavigate();
@@ -28,12 +28,12 @@ const RegisterForm = () => {
     }
 
     try {
-      const res = await axios.post('http://localhost:8000/users/register', {
+      await users.register({
         name: formData.name,
         email: formData.email,
         password: formData.password,
       });
-      if (res.status === 201) navigate('/login');
+      navigate('/login');
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Registration failed. Please try again.');
     } finally {
@@ -42,7 +42,7 @@ const RegisterForm = () => {
   };
 
   const handleGoogleLogin = () => {
-    window.location.href = 'http://localhost:8000/auth/google/login';
+    auth.googleLogin();
   };
 
   return (
