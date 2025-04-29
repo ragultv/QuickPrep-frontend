@@ -25,33 +25,40 @@ export default function Dashboard() {
   const [userStats, setUserStats] = useState<UserStats | null>(null);
   const [userName, setUserName] = useState('');
 
-  // ── 1) BLOCK BACK BUTTON ───────────────────────────────────────────────
+  // ── 1) AUTHENTICATION CHECK ─────────────────────────────────────────────
   useEffect(() => {
-    // Push an extra history entry for the current URL
-    const blockBack = () => window.history.pushState(null, '', window.location.href);
-
-    // Immediately push one entry…
-    blockBack();
-    // …and trap any popstate (Back/Forward)
-    window.addEventListener('popstate', blockBack);
-
-    return () => {
-      window.removeEventListener('popstate', blockBack);
-    };
-  }, []);
-
-  // ── 2) FETCH USER & STATS ──────────────────────────────────────────────
-  useEffect(() => {
-    const controller = new AbortController();
-    let isMounted = true;
-
-    const fetchDashboard = async () => {
+    const checkAuth = async () => {
       const token = localStorage.getItem('access_token');
       if (!token) {
         navigate('/login', { replace: true });
         return;
       }
 
+      try {
+        await users.getMe();
+      } catch (error) {
+        localStorage.removeItem('access_token');
+        navigate('/login', { replace: true });
+      }
+    };
+
+    checkAuth();
+  }, [navigate]);
+
+  // ── 2) BLOCK BACK BUTTON ───────────────────────────────────────────────
+  useEffect(() => {
+    const blockBack = () => window.history.pushState(null, '', window.location.href);
+    blockBack();
+    window.addEventListener('popstate', blockBack);
+    return () => window.removeEventListener('popstate', blockBack);
+  }, []);
+
+  // ── 3) FETCH USER & STATS ──────────────────────────────────────────────
+  useEffect(() => {
+    const controller = new AbortController();
+    let isMounted = true;
+
+    const fetchDashboard = async () => {
       try {
         setIsLoading(true);
         
@@ -67,12 +74,10 @@ export default function Dashboard() {
           const sessionRes = await userStatsApi.getRecentSessions();
           
           if (isMounted) {
-            // Ensure we always set an array, even if the API returns null or undefined
             setRecentSessions(Array.isArray(sessionRes.data) ? sessionRes.data : []);
           }
         } catch (sessionErr: any) {
           console.log('Failed to load sessions:', sessionErr);
-          // Don't set an error, just use empty array
           if (isMounted) {
             setRecentSessions([]);
           }
@@ -86,7 +91,6 @@ export default function Dashboard() {
           }
         } catch (statsErr: any) {
           console.log('Failed to load stats:', statsErr);
-          // Use default stats
           if (isMounted) {
             setUserStats({ total_quiz: 0, best_score: 0, average_time: '0m' });
           }
