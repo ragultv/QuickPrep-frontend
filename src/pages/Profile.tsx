@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Mail, Lock, Award, BookOpen, LogOut } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
+import { toast } from 'react-hot-toast';
 import type { UserProfile } from '../types';
 import { users } from '../utils/api';
 
@@ -30,9 +31,12 @@ export default function Profile() {
   }, [navigate]);
 
   const handleLogout = () => {
-    localStorage.clear();
-    navigate('/login');
-  };
+  localStorage.clear();
+  toast.success('Logged out successfully');
+  setTimeout(() => {
+    navigate('/login', { replace: true });
+  }, 500); // short delay for toast to show
+};
 
   if (!profile) return <div className="text-center py-20">Loading profile...</div>;
 
