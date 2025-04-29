@@ -1,11 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { Mail, Lock, Award, BookOpen, LogOut } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
-import { toast } from 'react-hot-toast';
 import type { UserProfile } from '../types';
 import { users } from '../utils/api';
 
-export default function Profile() {
+// ← added: define props so Profile can receive onLogout callback
+interface ProfileProps {
+  onLogout: () => void;
+}
+
+export default function Profile({ onLogout }: ProfileProps) {  // ← changed: accept onLogout
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const navigate = useNavigate();
 
@@ -31,14 +35,14 @@ export default function Profile() {
   }, [navigate]);
 
   const handleLogout = () => {
-  localStorage.clear();
-  toast.success('Logged out successfully');
-  setTimeout(() => {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    onLogout();                // ← changed: actually invoke the prop
     navigate('/login', { replace: true });
-  }, 500); // short delay for toast to show
-};
+  };                           // ← added: close handleLogout
 
-  if (!profile) return <div className="text-center py-20">Loading profile...</div>;
+  if (!profile)                   // ← moved out of handleLogout
+    return <div className="text-center py-20">Loading profile...</div>;
 
   return (
     <div className="max-w-3xl mx-auto">
