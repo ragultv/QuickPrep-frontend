@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { auth } from '../utils/api';
 
 interface LoginFormProps {
@@ -9,6 +9,7 @@ interface LoginFormProps {
 
 const LoginForm = ({ onLogin }: LoginFormProps) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
@@ -23,7 +24,10 @@ const LoginForm = ({ onLogin }: LoginFormProps) => {
       const res = await auth.login(formData.email, formData.password);
       localStorage.setItem('access_token', res.data.access_token);
       onLogin?.();
-      navigate('/');
+      
+      // Redirect to the intended destination or home
+      const from = location.state?.from?.pathname || '/';
+      navigate(from, { replace: true });
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Login failed. Please try again.');
     } finally {
