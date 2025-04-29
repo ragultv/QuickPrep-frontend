@@ -89,7 +89,7 @@ function App() {
           element={
             <ProtectedRoute>
               <Layout>
-                <Profile />
+                <Profile onLogout={() => setIsLoggedIn(false)} />
               </Layout>
             </ProtectedRoute>
           }
