@@ -573,7 +573,14 @@ export default function Quiz() {
   const currentQuestionBtnRef = useRef<HTMLButtonElement>(null);
 
   const MobileQuestionNavigation = () => {
-    const visibleQuestionsCount = 7; // Show 7 questions at a time
+    // Dynamically determine the visible odd count (max 7, min 1 or 3 or 5)
+    let visibleQuestionsCount = 7;
+    if (questions.length < 7) {
+      // Find the largest odd number <= questions.length
+      visibleQuestionsCount = questions.length;
+      if (visibleQuestionsCount % 2 === 0) visibleQuestionsCount -= 1;
+      if (visibleQuestionsCount < 1) visibleQuestionsCount = 1;
+    }
     const halfVisible = Math.floor(visibleQuestionsCount / 2);
     
     // Calculate which questions should be visible
