@@ -569,6 +569,9 @@ export default function Quiz() {
 
   // Mobile Question Navigation Component
   const [showMobileGrid, setShowMobileGrid] = useState(false);
+  const mobileNavContainerRef = useRef<HTMLDivElement>(null);
+  const currentQuestionBtnRef = useRef<HTMLButtonElement>(null);
+
   const MobileQuestionNavigation = () => {
     const visibleQuestionsCount = 7; // Show 7 questions at a time
     const halfVisible = Math.floor(visibleQuestionsCount / 2);
@@ -607,8 +610,12 @@ export default function Quiz() {
             <ChevronLeft className="h-6 w-6" />
           </button>
           
-          <div className="flex-1 overflow-x-auto scrollbar-hide-mobile">
-            <div className="flex gap-3 px-2 min-w-min justify-center">
+          <div
+            className="flex-1 overflow-x-auto scrollbar-hide-mobile px-2"
+            ref={mobileNavContainerRef}
+            style={{ WebkitOverflowScrolling: 'touch' }}
+          >
+            <div className="flex gap-3 min-w-fit">
               {questions.map((_, index) => {
                 const isVisible = index >= start && index <= end;
                 if (!isVisible) return null;
@@ -616,6 +623,7 @@ export default function Quiz() {
                 return (
                   <button
                     key={index}
+                    ref={isCurrent ? currentQuestionBtnRef : undefined}
                     onClick={() => {
                       if (isCurrent) setShowMobileGrid(true);
                       else handleQuestionNavigation(index);
@@ -625,7 +633,7 @@ export default function Quiz() {
                       transition-all duration-200
                       ${
                         isCurrent
-                          ? "bg-yellow-400 text-black transform scale-110 shadow-md ring-2 ring-yellow-500"
+                          ? "bg-yellow-500 text-black transform scale-110 shadow-md ring-2 ring-yellow-500"
                           : selectedAnswers[index] !== -1
                             ? "bg-green-500 text-white"
                             : "bg-white text-black border-2 border-gray-300"
@@ -691,6 +699,13 @@ export default function Quiz() {
       </Fragment>
     );
   };
+
+  // Scroll current question into view in mobile nav
+  useEffect(() => {
+    if (isMobileView && currentQuestionBtnRef.current && mobileNavContainerRef.current) {
+      currentQuestionBtnRef.current.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
+    }
+  }, [currentQuestionIndex, isMobileView]);
 
   if (isLoading) {
     return <div>Loading...</div>
