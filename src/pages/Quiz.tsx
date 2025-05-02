@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, Fragment } from "react"
 import { useNavigate, useSearchParams } from "react-router-dom"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import type { Question } from "../types"
@@ -17,9 +17,11 @@ export default function Quiz() {
   const [error, setError] = useState("")
   const [quizSessionId, setQuizSessionId] = useState<string | null>(null)
   const [isFullScreen, setIsFullScreen] = useState(false)
+  const [isMobileView, setIsMobileView] = useState(false)
   
   // Refs for the full screen element
   const quizContainerRef = useRef<HTMLDivElement>(null)
+  const questionContentRef = useRef<HTMLDivElement>(null)
 
   // Countdown timer state
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null)
@@ -206,6 +208,33 @@ export default function Quiz() {
       return () => clearTimeout(timer)
     }
   }, [isLoading, questions, isFullScreen])
+
+  // Adjust font size based on content length
+  useEffect(() => {
+    const adjustFontSize = () => {
+      const questionContent = questionContentRef.current;
+      if (!questionContent) return;
+      
+      // Get current question content
+      const question = questions[currentQuestionIndex]?.question || '';
+      
+      // Reset font size first
+      questionContent.style.fontSize = '1rem';
+      
+      // Simple heuristic - reduce font size for longer content
+      if (question.length > 200) {
+        questionContent.style.fontSize = '0.9rem';
+      }
+      if (question.length > 300) {
+        questionContent.style.fontSize = '0.85rem';
+      }
+      if (question.length > 400) {
+        questionContent.style.fontSize = '0.8rem';
+      }
+    };
+    
+    adjustFontSize();
+  }, [currentQuestionIndex, questions]);
 
   // Save state whenever relevant parts change
   useEffect(() => {
@@ -458,22 +487,20 @@ export default function Quiz() {
     if (count <= 16) return 'grid-cols-4';
     if (count <= 25) return 'grid-cols-5';
     if (count <= 36) return 'grid-cols-6';
-    if (count <= 49) return 'grid-cols-6'; // Adjust as needed for larger numbers
-    if (count <=60) return 'grid-cols-7';
-    if (count <= 72) return 'grid-cols-8'; // Adjust as needed for larger numbers
-    if (count <= 100) return 'grid-cols-9'; // Adjust as needed for larger numbers
-    return 'grid-cols-6'; // Maximum number of columns
+    if (count <= 49) return 'grid-cols-7';
+    if (count <= 64) return 'grid-cols-8';
+    if (count <= 81) return 'grid-cols-9';
+    return 'grid-cols-10';
   };
 
   // Determine button size based on number of questions
   const getButtonSizeClass = () => {
     const count = questions.length;
-    if (count <= 9) return 'text-2xl h-16';
-    if (count <= 16) return 'text-xl h-14';
-    if (count <= 25) return 'text-lg h-12';
-    if (count <= 36) return 'text-base h-10';
-    if (count <= 49) return 'text-sm h-9';
-    return 'text-xs h-9'; // Smallest size for many questions
+    if (count <= 9) return 'text-lg h-12';
+    if (count <= 25) return 'text-base h-10';
+    if (count <= 49) return 'text-sm h-8';
+    if (count <= 81) return 'text-xs h-7';
+    return 'text-xs h-6';
   };
 
   // Add navigation prevention
@@ -526,6 +553,145 @@ export default function Quiz() {
     };
   }, [isLoading, questions, navigate, isFullScreen]);
 
+  // Check for mobile view
+  useEffect(() => {
+    const checkMobileView = () => {
+      setIsMobileView(window.innerWidth < 768)
+    }
+    
+    checkMobileView()
+    window.addEventListener('resize', checkMobileView)
+    
+    return () => {
+      window.removeEventListener('resize', checkMobileView)
+    }
+  }, [])
+
+  // Mobile Question Navigation Component
+  const [showMobileGrid, setShowMobileGrid] = useState(false);
+  const MobileQuestionNavigation = () => {
+    const visibleQuestionsCount = 7; // Show 7 questions at a time
+    const halfVisible = Math.floor(visibleQuestionsCount / 2);
+    
+    // Calculate which questions should be visible
+    const calculateVisibleRange = () => {
+      let start = currentQuestionIndex - halfVisible;
+      let end = currentQuestionIndex + halfVisible;
+      
+      // Adjust range if at the beginning
+      if (start < 0) {
+        start = 0;
+        end = Math.min(visibleQuestionsCount - 1, questions.length - 1);
+      }
+      
+      // Adjust range if at the end
+      if (end >= questions.length) {
+        end = questions.length - 1;
+        start = Math.max(0, end - (visibleQuestionsCount - 1));
+      }
+      
+      return { start, end };
+    };
+
+    const { start, end } = calculateVisibleRange();
+    
+    return (
+      <Fragment>
+        <div className="w-full bg-gray-200 py-3 flex items-center md:hidden">
+          <button 
+            onClick={handlePrevious}
+            disabled={isFirstQuestion}
+            className="flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-full bg-white text-gray-600 disabled:opacity-50 disabled:bg-gray-100"
+            aria-label="Previous question"
+          >
+            <ChevronLeft className="h-6 w-6" />
+          </button>
+          
+          <div className="flex-1 overflow-x-auto scrollbar-hide-mobile">
+            <div className="flex gap-3 px-2 min-w-min justify-center">
+              {questions.map((_, index) => {
+                const isVisible = index >= start && index <= end;
+                if (!isVisible) return null;
+                const isCurrent = currentQuestionIndex === index;
+                return (
+                  <button
+                    key={index}
+                    onClick={() => {
+                      if (isCurrent) setShowMobileGrid(true);
+                      else handleQuestionNavigation(index);
+                    }}
+                    className={`
+                      flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-full text-base font-semibold
+                      transition-all duration-200
+                      ${
+                        isCurrent
+                          ? "bg-yellow-400 text-black transform scale-110 shadow-md ring-2 ring-yellow-500"
+                          : selectedAnswers[index] !== -1
+                            ? "bg-green-500 text-white"
+                            : "bg-white text-black border-2 border-gray-300"
+                      }
+                    `}
+                    aria-label={`Go to question ${index + 1}${isCurrent ? ' (current)' : ''}`}
+                  >
+                    {index + 1}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          
+          <button 
+            onClick={handleNext}
+            disabled={isLastQuestion}
+            className="flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-full bg-white text-gray-600 disabled:opacity-50 disabled:bg-gray-100"
+            aria-label="Next question"
+          >
+            <ChevronRight className="h-6 w-6" />
+          </button>
+        </div>
+
+        {/* Modal for full question grid in mobile view */}
+        {showMobileGrid && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+            <div className="bg-white rounded-xl shadow-2xl max-w-md w-full max-h-[90vh] flex flex-col">
+              <div className="flex justify-between items-center p-4 border-b">
+                <span className="font-semibold text-lg">All Questions</span>
+                <button onClick={() => setShowMobileGrid(false)} className="text-gray-500 hover:text-black text-2xl leading-none">&times;</button>
+              </div>
+              {/* Scrollable Grid Container */}
+              <div className="p-4 overflow-y-auto scrollbar-thin max-h-[70vh]">
+                <div className={`grid gap-2 ${getDynamicGridCols()}`}>
+                  {questions.map((_, index) => (
+                    <button
+                      key={index}
+                      onClick={() => {
+                        handleQuestionNavigation(index);
+                        setShowMobileGrid(false);
+                      }}
+                      className={`
+                        aspect-square flex items-center justify-center rounded-md font-medium text-sm
+                        ${
+                          currentQuestionIndex === index
+                            ? "bg-yellow-500 text-black"
+                            : selectedAnswers[index] !== -1
+                              ? "bg-green-500 text-white"
+                              : "bg-white text-black border border-gray-300"
+                        }
+                        hover:opacity-90 transition-colors
+                      `}
+                    >
+                      {index + 1}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </Fragment>
+    );
+  };
+
   if (isLoading) {
     return <div>Loading...</div>
   }
@@ -537,45 +703,44 @@ export default function Quiz() {
   return (
     <div 
       ref={quizContainerRef} 
-      className={`flex justify-center items-start min-h-screen bg-gray-50 p-4 ${isFullScreen ? 'fullscreen-mode' : ''}`}
+      className="h-screen bg-gray-50 flex flex-col overflow-hidden"
     >
-      <div className="w-full max-w-6xl">
-        {/* Top section with timer only */}
-        <div className="flex justify-end items-center mb-4">          
-          <div className="bg-white rounded-lg shadow-sm p-2 flex items-center gap-2">
-            <span className="text-sm font-medium">Time Remaining:</span>
-            <span className="font-mono font-bold text-lg">{formatTimeRemaining()}</span>
-          </div>
+      {/* Mobile Question Navigation */}
+      <MobileQuestionNavigation />
+
+      {/* Timer Header - Fixed at top */}
+      <div className="sticky top-0 z-10 bg-white shadow-sm p-2 flex justify-between items-center">
+        
+        <div className="bg-white rounded-lg shadow-sm p-2 flex items-center gap-2">
+          <span className="text-sm font-medium">Time Remaining:</span>
+          <span className="font-mono font-bold text-lg">{formatTimeRemaining()}</span>
         </div>
+      </div>
 
-        {isFullScreen && (
-          <div className="mb-4 bg-yellow-100 border-l-4 border-yellow-500 p-3 rounded-md">
-            <p className="text-yellow-700">
-              <strong>Interview Mode:</strong> This quiz requires fullscreen mode for optimal experience.
-            </p>
-          </div>
-        )}
-
-        <div className="flex flex-col md:flex-row gap-6">
-          {/* Left side - Question navigation grid with dynamic sizing */}
-          <div className="w-full md:w-1/3 bg-white rounded-xl shadow-lg p-6 self-start sticky top-4">
-            <div className="mb-4">
-              <div className="flex items-center gap-4 mb-4">
+      {/* Main Content Area - Fixed height with proper spacing */}
+      <div className="flex-1 overflow-hidden">
+        <div className="flex flex-col md:flex-row w-full max-w-7xl mx-auto p-4 gap-4 h-full">
+          {/* Left side - Question navigation grid (desktop only) */}
+          <div className="hidden md:block w-full md:w-1/3 bg-white rounded-xl shadow-lg overflow-hidden h-full">
+            <div className="p-4 bg-gray-50 border-b">
+              <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded-full bg-green-500"></div>
-                  <span>Answered</span>
+                  <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                  <span className="text-sm">Answered</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded-full bg-yellow-400"></div>
-                  <span>Current</span>
+                  <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
+                  <span className="text-sm">Current</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded-full bg-white border border-gray-300"></div>
-                  <span>Not Answered</span>
+                  <div className="w-3 h-3 rounded-full bg-white border border-gray-300"></div>
+                  <span className="text-sm">Not Answered</span>
                 </div>
               </div>
-
-              {/* Dynamic Question Number Grid */}
+            </div>
+            
+            {/* Scrollable grid container */}
+            <div className="p-4 overflow-y-auto scrollbar-thin h-full" style={{ maxHeight: "calc(100% - 60px)" }}>
               <div className={`grid gap-2 ${getDynamicGridCols()}`}>
                 {questions.map((_, index) => (
                   <button
@@ -601,99 +766,127 @@ export default function Quiz() {
             </div>
           </div>
 
-          {/* Right side - Question and answers with fixed height container */}
-          <div className="w-full md:w-2/3 bg-white rounded-xl shadow-lg p-6 flex flex-col min-h-[500px]">
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-sm font-medium">
-                Question {currentQuestionIndex + 1} of {questions.length}
-              </span>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={handlePrevious}
-                  disabled={isFirstQuestion}
-                  className="p-1 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                  title="Previous question"
-                >
-                  <ChevronLeft className="h-5 w-5" />
-                </button>
-                <button
-                  onClick={handleNext}
-                  disabled={isLastQuestion}
-                  className="p-1 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                  title="Next question"
-                >
-                  <ChevronRight className="h-5 w-5" />
-                </button>
+          {/* Right side - Question and answers with fixed height */}
+          <div className="w-full md:w-2/3 bg-white rounded-xl shadow-lg flex flex-col h-full">
+            {/* Question content - Scrollable */}
+            <div className="flex-1 p-6 overflow-y-auto" style={{ maxHeight: "calc(100% - 80px)" }}>
+              <div ref={questionContentRef} className="mb-6 question-text">
+                <p className="text-xl font-medium">{questions[currentQuestionIndex]?.question}</p>
+              </div>
+
+              <div className="space-y-4 options-container">
+                {questions[currentQuestionIndex]?.options.map((option, index) => (
+                  <button
+                    key={index}
+                    onClick={() => handleAnswerSelect(index)}
+                    className={`w-full text-left p-4 rounded-lg border-2 transition-colors ${
+                      selectedAnswers[currentQuestionIndex] === index
+                        ? "border-green-500 bg-green-50"
+                        : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+                    }`}
+                  >
+                    {option}
+                  </button>
+                ))}
               </div>
             </div>
 
-            {questions.length > 0 && (
-              <>
-                <div className="mb-6 max-h-[150px] overflow-y-auto">
-                  <p className="text-xl font-medium">{questions[currentQuestionIndex].question}</p>
-                </div>
-                <div className="space-y-3 flex-grow overflow-y-auto">
-                  {questions[currentQuestionIndex].options.map((option, index) => (
-                    <button
-                      key={index}
-                      onClick={() => handleAnswerSelect(index)}
-                      className={`w-full text-left p-4 rounded-lg border ${
-                        selectedAnswers[currentQuestionIndex] === index
-                          ? "border-green-500 bg-green-50"
-                          : "border-gray-300 hover:border-gray-400"
-                      }`}
-                    >
-                      {option}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-
-            <div className="mt-6 flex justify-between gap-4">
-              <button
-                onClick={handlePrevious}
-                className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
-              >
-                Previous
-              </button>
-              {isLastQuestion ? (
+            {/* Navigation buttons - Fixed at bottom */}
+            <div className="p-4 border-t bg-white">
+              <div className="flex justify-between gap-4">
                 <button
-                  onClick={handleSubmit}
-                  className="px-6 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600"
+                  onClick={handlePrevious}
+                  disabled={isFirstQuestion}
+                  className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 disabled:opacity-50"
                 >
-                  Submit Quiz
+                  Previous
                 </button>
-              ) : (
-                <button
-                  onClick={handleNext}
-                  disabled={selectedAnswers[currentQuestionIndex] === -1}
-                  className="px-6 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Next
-                </button>
-              )}
+                
+                {isLastQuestion ? (
+                  <button
+                    onClick={handleSubmit}
+                    className="px-6 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600"
+                  >
+                    Submit Quiz
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleNext}
+                    disabled={selectedAnswers[currentQuestionIndex] === -1}
+                    className="px-6 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Next
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
       </div>
-      
-      {/* CSS for fullscreen mode */}
+
+      {/* CSS for scrollbar styling */}
       <style>{`
-        .fullscreen-mode {
-          background-color: #f9fafb;
-          width: 100%;
-          height: 100%;
-          overflow-y: auto;
-          padding: 1rem;
+        /* Custom scrollbar */
+        .scrollbar-thin::-webkit-scrollbar {
+          width: 6px;
         }
         
+        .scrollbar-thin::-webkit-scrollbar-track {
+          background: #f1f1f1;
+          border-radius: 10px;
+        }
+        
+        .scrollbar-thin::-webkit-scrollbar-thumb {
+          background: #c1c1c1;
+          border-radius: 10px;
+        }
+        
+        .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+          background: #a8a8a8;
+        }
+        
+        /* Hide horizontal scrollbar in mobile for question nav */
         @media (max-width: 768px) {
-          .fullscreen-mode {
-            padding: 0.5rem;
+          .scrollbar-hide-mobile::-webkit-scrollbar {
+            display: none;
+          }
+          .scrollbar-hide-mobile {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+          }
+        }
+        
+        /* Auto-adjust font size for question based on container */
+        .question-text {
+          transition: font-size 0.2s ease;
+        }
+        
+        /* Option text styling for better readability */
+        .options-container button {
+          transition: all 0.2s ease;
+          line-height: 1.5;
+        }
+        
+        .options-container button:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+        
+        .options-container button:active {
+          transform: translateY(0);
+        }
+        
+        /* Mobile optimizations */
+        @media (max-width: 768px) {
+          .question-text {
+            font-size: 1rem;
+          }
+          
+          .options-container button {
+            padding: 0.75rem;
           }
         }
       `}</style>
     </div>
-  )
+  );
 }
