@@ -1,13 +1,14 @@
 "use client"
 
 import { useState, useEffect, useRef, Fragment } from "react"
-import { useNavigate, useSearchParams } from "react-router-dom"
+import { useNavigate, useSearchParams, useLocation } from "react-router-dom"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import type { Question } from "../types"
 import { quiz } from "../utils/api"
 
 export default function Quiz() {
   const navigate = useNavigate()
+  const location = useLocation()
   const [searchParams] = useSearchParams()
   const [questions, setQuestions] = useState<Question[]>([])
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
@@ -18,6 +19,7 @@ export default function Quiz() {
   const [quizSessionId, setQuizSessionId] = useState<string | null>(null)
   const [isFullScreen, setIsFullScreen] = useState(false)
   const [isMobileView, setIsMobileView] = useState(false)
+  const isReadonly = searchParams.get("readonly") === "true";
   
   // Refs for the full screen element
   const quizContainerRef = useRef<HTMLDivElement>(null)
@@ -199,6 +201,7 @@ export default function Quiz() {
 
   // Automatically enter full screen when quiz loads
   useEffect(() => {
+    if (isReadonly) return;
     if (!isLoading && questions.length > 0 && !isFullScreen) {
       // Small delay to ensure component is fully rendered
       const timer = setTimeout(() => {
@@ -207,7 +210,7 @@ export default function Quiz() {
       
       return () => clearTimeout(timer)
     }
-  }, [isLoading, questions, isFullScreen])
+  }, [isLoading, questions, isFullScreen, isReadonly])
 
   // Adjust font size based on content length
   useEffect(() => {
@@ -249,8 +252,11 @@ export default function Quiz() {
     isMountedRef.current = true
 
     const fetchQuestionsAndCreateSession = async () => {
+      const sessionId = searchParams.get("session_id")
       const questionIds = searchParams.get("ids")?.split(",")
-      if (!questionIds) {
+      const preloadedSession = location.state?.preloadedSession;
+      
+      if (!sessionId && !questionIds) {
         safeStateUpdate(() => setError("No questions found"))
         return
       }
@@ -279,29 +285,60 @@ export default function Quiz() {
       }
 
       try {
-        // Get Questions
-        const questionsResponse = await quiz.getQuestions(questionIds.join(","))
+        let questionsResponse;
+        let sessionResponse;
+
+        if (preloadedSession) {
+          console.log("Using preloaded session data:", preloadedSession);
+          // Use the session data passed from MySessions
+          sessionResponse = { data: preloadedSession }; // Mimic API response structure
+          const questionIdsForPreloaded = sessionResponse.data.questions.map((q: { question_id: string }) => q.question_id);
+          questionsResponse = await quiz.getQuestions(questionIdsForPreloaded.join(","));
+        } else if (sessionId) {
+          // Get existing session if not preloaded (e.g., resuming, direct navigation)
+          sessionResponse = await quiz.getSession(sessionId)
+          const isReadonly = searchParams.get("readonly") === "true";
+          if (!sessionResponse.data.started_at && !isReadonly) {
+            setError("Session not started. Please start the session from My Sessions.");
+            setIsLoading(false);
+            return;
+          }
+          // Get questions for the session
+          const questionIds = sessionResponse.data.questions.map((q: { question_id: string }) => q.question_id)
+          questionsResponse = await quiz.getQuestions(questionIds.join(","))
+        } else {
+          // Create new session
+          questionsResponse = await quiz.getQuestions(questionIds!.join(","))
+          sessionResponse = await quiz.createSession({
+            question_ids: questionIds!,
+            prompt: searchParams.get("prompt") || "",
+            topic: searchParams.get("topic") || "",
+            difficulty: searchParams.get("difficulty") || "",
+            company: searchParams.get("company") || "",
+          })
+        }
 
         if (!isMountedRef.current) return
 
-        // Create Quiz Session
-        const sessionResponse = await quiz.createSession({
-          question_ids: questionIds,
-          prompt: searchParams.get("prompt") || "",
-          topic: searchParams.get("topic") || "",
-          difficulty: searchParams.get("difficulty") || "",
-          company: searchParams.get("company") || "",
-        })
+        // Calculate time remaining based on started_at and total_duration
+        const startedAt = sessionResponse.data.started_at ? new Date(sessionResponse.data.started_at) : null;
+        const totalDuration = sessionResponse.data.total_duration * 60; // minutes to seconds, no rounding
+        let timeLeft = null;
+        if (startedAt && totalDuration) {
+          const now = new Date();
+          const elapsed = Math.floor((now.getTime() - startedAt.getTime()) / 1000);
+          timeLeft = Math.max(totalDuration - elapsed, 0);
+          // Debug log
+          console.log({ startedAt, now, totalDuration, elapsed, timeLeft });
+        }
 
         safeStateUpdate(() => {
           setQuizSessionId(sessionResponse.data.id)
           setQuestions(questionsResponse.data)
-          // Initialize selectedAnswers array with a default value of -1 for each question
           setSelectedAnswers(new Array(questionsResponse.data.length).fill(-1))
-
-          // Set up timer with 90 seconds per question
-          const durationInSeconds = questionsResponse.data.length * 90
-          setTimeRemaining(durationInSeconds)
+          setSessionStartedAt(startedAt)
+          setSessionDuration(totalDuration)
+          setTimeRemaining(timeLeft)
         })
       } catch (err: any) {
         if (abortController.signal.aborted) {
@@ -323,13 +360,20 @@ export default function Quiz() {
         clearInterval(timerRef.current)
       }
     }
-  }, [searchParams, navigate])
+  }, [searchParams, navigate, location.state])
 
   // Timer effect
   useEffect(() => {
     if (timeRemaining === null) return
 
-    // Start the countdown timer
+    if (timeRemaining <= 0) {
+      if (!isSubmittingRef.current) {
+        isTimeExpired.current = true
+        handleSubmit()
+      }
+      return;
+    }
+
     timerRef.current = setInterval(() => {
       safeStateUpdate(() => {
         setTimeRemaining((prev) => {
@@ -505,6 +549,7 @@ export default function Quiz() {
 
   // Add navigation prevention
   useEffect(() => {
+    if (isReadonly) return;
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (!isSubmittingRef.current && !isLoading && questions.length > 0) {
         // Cancel the event
@@ -521,10 +566,11 @@ export default function Quiz() {
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [isLoading, questions]);
+  }, [isLoading, questions, isReadonly]);
 
   // Handle back button
   useEffect(() => {
+    if (isReadonly) return;
     const handlePopState = () => {
       if (!isSubmittingRef.current && !isLoading && questions.length > 0) {
         // Prevent navigation
@@ -551,7 +597,7 @@ export default function Quiz() {
     return () => {
       window.removeEventListener('popstate', handlePopState);
     };
-  }, [isLoading, questions, navigate, isFullScreen]);
+  }, [isLoading, questions, navigate, isFullScreen, isReadonly]);
 
   // Check for mobile view
   useEffect(() => {
@@ -714,6 +760,58 @@ export default function Quiz() {
     }
   }, [currentQuestionIndex, isMobileView]);
 
+  const [sessionStartedAt, setSessionStartedAt] = useState<Date | null>(null);
+  const [sessionDuration, setSessionDuration] = useState<number | null>(null);
+
+  // Hosted session logic
+  const sessionIdRaw = searchParams.get("session_id");
+  const sessionId = sessionIdRaw ?? '';
+  const isHostedSession = location.state?.isHostedSession || false;
+  const [isSessionLive, setIsSessionLive] = useState(location.state?.isSessionLive || false);
+  const [waitingForHost, setWaitingForHost] = useState(isHostedSession && !location.state?.isSessionLive);
+  const [hasStartedHostedQuiz, setHasStartedHostedQuiz] = useState(() => {
+    if (!isHostedSession || !sessionId) return false;
+    return !!localStorage.getItem(getHostedQuizStartedKey(sessionId));
+  });
+
+  // New function to get hosted quiz started key
+  const getHostedQuizStartedKey = (sessionId: string) => {
+    return `${STORAGE_PREFIX}hosted_quiz_started_${sessionId}`;
+  };
+
+  // Poll for session live status if hosted session and not live
+  useEffect(() => {
+    let poll: NodeJS.Timeout | null = null;
+    if (isHostedSession && !isSessionLive) {
+      poll = setInterval(async () => {
+        try {
+          const res = await quiz.getHostedSessionIsLive(sessionId);
+          if (res.data.already_started) {
+            setIsSessionLive(true);
+            const started = !!localStorage.getItem(getHostedQuizStartedKey(sessionId));
+            setHasStartedHostedQuiz(started);
+            if (poll) clearInterval(poll);
+          }
+        } catch (e) {
+          // Optionally handle error
+        }
+      }, 4000);
+    }
+    return () => {
+      if (poll) clearInterval(poll);
+    };
+  }, [isHostedSession, isSessionLive, sessionId]);
+
+  // Auto start the session if live and not started by user
+  useEffect(() => {
+    if (isHostedSession && isSessionLive && !hasStartedHostedQuiz) {
+      setHasStartedHostedQuiz(true);
+      if (isHostedSession && sessionId) {
+        localStorage.setItem(getHostedQuizStartedKey(sessionId), "1");
+      }
+    }
+  }, [isHostedSession, isSessionLive, hasStartedHostedQuiz, sessionId]);
+
   if (isLoading) {
     return <div>Loading...</div>
   }
@@ -731,13 +829,14 @@ export default function Quiz() {
       <MobileQuestionNavigation />
 
       {/* Timer Header - Fixed at top */}
-      <div className="sticky top-0 z-10 bg-white shadow-sm p-2 flex justify-between items-center">
-        
-        <div className="bg-white rounded-lg shadow-sm p-2 flex items-center gap-2">
-          <span className="text-sm font-medium">Time Remaining:</span>
-          <span className="font-mono font-bold text-lg">{formatTimeRemaining()}</span>
+      {!isReadonly && (
+        <div className="sticky top-0 z-10 bg-white shadow-sm p-2 flex justify-between items-center">
+          <div className="bg-white rounded-lg shadow-sm p-2 flex items-center gap-2">
+            <span className="text-sm font-medium">Time Remaining:</span>
+            <span className="font-mono font-bold text-lg">{formatTimeRemaining()}</span>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Main Content Area - Fixed height with proper spacing */}
       <div className="flex-1 overflow-hidden">
@@ -800,12 +899,13 @@ export default function Quiz() {
                 {questions[currentQuestionIndex]?.options.map((option, index) => (
                   <button
                     key={index}
-                    onClick={() => handleAnswerSelect(index)}
+                    onClick={() => !isReadonly && handleAnswerSelect(index)}
                     className={`w-full text-left p-4 rounded-lg border-2 transition-colors ${
                       selectedAnswers[currentQuestionIndex] === index
                         ? "border-green-500 bg-green-50"
                         : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
-                    }`}
+                    } ${isReadonly ? 'opacity-60 cursor-not-allowed' : ''}`}
+                    disabled={isReadonly}
                   >
                     {option}
                   </button>
@@ -823,22 +923,33 @@ export default function Quiz() {
                 >
                   Previous
                 </button>
-                
-                {isLastQuestion ? (
-                  <button
-                    onClick={handleSubmit}
-                    className="px-6 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600"
-                  >
-                    Submit Quiz
-                  </button>
-                ) : (
-                  <button
-                    onClick={handleNext}
-                    disabled={selectedAnswers[currentQuestionIndex] === -1}
-                    className="px-6 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Next
-                  </button>
+                {!isReadonly && (
+                  isLastQuestion ? (
+                    <button
+                      onClick={handleSubmit}
+                      className="px-6 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600"
+                    >
+                      Submit Quiz
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleNext}
+                      disabled={selectedAnswers[currentQuestionIndex] === -1}
+                      className="px-6 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Next
+                    </button>
+                  )
+                )}
+                {isReadonly && (
+                  !isLastQuestion && (
+                    <button
+                      onClick={handleNext}
+                      className="px-6 py-2 bg-gray-300 text-gray-600 rounded-lg cursor-default"
+                    >
+                      Next
+                    </button>
+                  )
                 )}
               </div>
             </div>

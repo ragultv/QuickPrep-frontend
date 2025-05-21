@@ -29,9 +29,16 @@ const LoginForm = ({ onLogin }: LoginFormProps) => {
         localStorage.setItem('access_token', res.data.access_token);
         onLogin?.();
         
-        // Redirect to the intended destination or home
-        const from = location.state?.from?.pathname || '/';
-        navigate(from, { replace: true });
+        // Check for stored redirect path
+        const redirectPath = localStorage.getItem('redirect_after_login');
+        if (redirectPath) {
+          localStorage.removeItem('redirect_after_login'); // Clear the stored path
+          navigate(redirectPath, { replace: true });
+        } else {
+          // Redirect to the intended destination or home
+          const from = location.state?.from?.pathname || '/';
+          navigate(from, { replace: true });
+        }
       } else {
         console.error('No access token in response:', res.data);
         setError('Invalid login response. Please try again.');
@@ -61,7 +68,7 @@ const LoginForm = ({ onLogin }: LoginFormProps) => {
         <form onSubmit={handleSubmit} className="w-full max-w-md space-y-6">
           {/* Header + top link */}
           <div className="text-center">
-            <h2 className="text-2xl font-semibold text-gray-800">Log in</h2>
+            <h2 className="text-3xl font-bold text-gray-800">Log in</h2>
             
           </div>
 

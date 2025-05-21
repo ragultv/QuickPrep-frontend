@@ -61,7 +61,7 @@ const RegisterForm = () => {
         <form onSubmit={handleSubmit} className="w-full max-w-md space-y-6">
           {/* Header + top link */}
           <div className="text-center">
-            <h2 className="text-2xl font-semibold text-gray-800">Create an account</h2>
+            <h2 className="text-3xl font-bold text-gray-800">Create an account</h2>
             
           </div>
 

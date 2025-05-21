@@ -1,6 +1,16 @@
 import React, { useState } from 'react';
-import { Layout as LayoutIcon, User, BookOpen, LogOut, BarChart } from 'lucide-react';
-import { Link, useLocation, Outlet, useNavigate } from 'react-router-dom';
+import { 
+  Layout as LayoutIcon, 
+  User, 
+  BookPlus, 
+  FileSpreadsheet, 
+  History, 
+  Calendar, 
+  ClipboardList,
+  BarChart2,
+  Settings
+} from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -10,12 +20,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const location = useLocation();
   const navigate = useNavigate();
-
-  const handleLogout = () => {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    navigate('/login');
-  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -45,7 +49,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 location.pathname === '/' ? 'text-indigo-600 bg-indigo-50' : 'text-gray-700 hover:bg-gray-100'
               }`}
             >
-              <BarChart className="h-5 w-5 mr-3" />
+              <BarChart2 className="h-5 w-5 mr-3" />
               Dashboard
             </Link>
             <Link
@@ -63,7 +67,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 location.pathname === '/quiz/create' ? 'text-indigo-600 bg-indigo-50' : 'text-gray-700 hover:bg-gray-100'
               }`}
             >
-              <BookOpen className="h-5 w-5 mr-3" />
+              <BookPlus className="h-5 w-5 mr-3" />
               Create Quiz
             </Link>
             <Link
@@ -72,8 +76,26 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 location.pathname === '/create-quiz-resume' ? 'text-indigo-600 bg-indigo-50' : 'text-gray-700 hover:bg-gray-100'
               }`}
             >
-              <BookOpen className="h-5 w-5 mr-3" />
+              <FileSpreadsheet className="h-5 w-5 mr-3" />
               Quiz by Resume
+            </Link>
+            <Link
+              to="/my-sessions"
+              className={`flex items-center px-4 py-2.5 text-sm font-medium rounded-lg ${
+                location.pathname === '/my-sessions' ? 'text-indigo-600 bg-indigo-50' : 'text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              <Calendar className="h-5 w-5 mr-3" />
+              My Sessions
+            </Link>
+            <Link
+              to="/manage-sessions"
+              className={`flex items-center px-4 py-2.5 text-sm font-medium rounded-lg ${
+                location.pathname === '/manage-sessions' ? 'text-indigo-600 bg-indigo-50' : 'text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              <Settings className="h-5 w-5 mr-3" />
+              Manage Sessions
             </Link>
             <Link
               to="/history"
@@ -81,11 +103,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 location.pathname === '/history' ? 'text-indigo-600 bg-indigo-50' : 'text-gray-700 hover:bg-gray-100'
               }`}
             >
-              <BookOpen className="h-5 w-5 mr-3" />
+              <History className="h-5 w-5 mr-3" />
               History
             </Link>
-            
-            
           </div>
         </nav>
       </div>
@@ -106,7 +126,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             </button>
             <div className="flex items-center space-x-2">
               <LayoutIcon className="h-6 w-6 text-indigo-600" />
-              <span className="text-xl font-semibold text-gray-800">QuizMaster</span>
+              <span className="text-xl font-semibold text-gray-800">QuizPrep</span>
             </div>
           </div>
         </div>

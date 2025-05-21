@@ -13,6 +13,14 @@ import QuizResultPage from './pages/QuizResultPage';
 import UpdateProfile from './pages/UpdateProfile';
 import ChangePassword from './pages/ChangePassword';
 import CreateQuizResume from './pages/createQuizResume';
+import MySessions from './pages/MySessions';
+import JoinSession from './pages/JoinSession';
+import ManageSessions from './pages/ManageSessions';
+import SessionDetails from './pages/SessionDetails';
+import UserProfile from './pages/UserProfile';
+import Settings from './pages/Settings';
+import HostedQuiz from './pages/HostedQuiz';
+
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -75,6 +83,14 @@ function App() {
           }
         />
         <Route
+          path="/hosted-quiz"
+          element={
+            <ProtectedRoute>
+              <HostedQuiz />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/quiz/results"
           element={
             <ProtectedRoute>
@@ -125,6 +141,16 @@ function App() {
           }
         />
         <Route
+          path="/my-sessions"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <MySessions />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/create-quiz-resume"
           element={
             <ProtectedRoute>
@@ -135,6 +161,48 @@ function App() {
           }
         />
         <Route path="/quiz-result/:sessionId" element={<QuizResultPage />} />
+        <Route path="/join-session/:sessionId" element={<JoinSession />} />
+        <Route
+          path="/manage-sessions"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <ManageSessions />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/session-details/:sessionId"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <SessionDetails />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/profile/:userId"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <UserProfile />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <Settings />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+
 
         {/* Catch all route - redirect to login if not authenticated, dashboard if authenticated */}
         <Route

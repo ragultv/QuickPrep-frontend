@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { userStats } from "../utils/api";
-import { BookOpen } from "lucide-react";
+
 
 interface RecentSession {
   session_id: string;
@@ -110,7 +110,7 @@ export default function History() {
               >
                 <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:shadow transition-shadow">
                   <div>
-                    <h3 className="font-medium text-gray-900 capitalize">
+                    <h3 className="font-medium items-center text-gray-900 capitalize">
                       {session.topic || "Untitled"} {session.difficulty} Test
                     </h3>
                     <p className="text-sm text-gray-500">
@@ -119,9 +119,9 @@ export default function History() {
                     <p className="text-sm text-gray-500">
                       Questions: {session.num_questions}
                     </p>
-                    <p className="text-sm text-gray-500">
+                    {/* <p className="text-sm text-gray-500">
                       Time Taken: {session.time_taken}
-                    </p>
+                    </p> */}
                   </div>
                   <div className="flex items-center">
                     <span

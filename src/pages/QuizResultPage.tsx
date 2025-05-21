@@ -42,6 +42,15 @@ export default function QuizResultPage() {
     fetchResults();
   }, [sessionId]);
 
+  useEffect(() => {
+    const handlePopState = (e: PopStateEvent) => {
+      // Always push to dashboard if user tries to go back
+      navigate('/', { replace: true });
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [navigate]);
+
   if (loading) return <p className="text-center p-6">Loading results…</p>;
   if (error)   return <p className="text-center text-red-500">{error}</p>;
   if (!result) return null;
@@ -143,6 +152,13 @@ export default function QuizResultPage() {
             );
           })}
         </div>
+
+        <button
+          onClick={() => navigate('/')}
+          className="mt-6 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+        >
+          Back to Dashboard
+        </button>
       </div>
     </div>
   );
