@@ -126,7 +126,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             </button>
             <div className="flex items-center space-x-2">
               <LayoutIcon className="h-6 w-6 text-indigo-600" />
-              <span className="text-xl font-semibold text-gray-800">QuizPrep</span>
+              <span className="text-xl font-semibold text-gray-800">QuickPrep</span>
             </div>
           </div>
         </div>
