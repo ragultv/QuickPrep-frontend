@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Create an Axios instance with a base URL from environment variables
 const api = axios.create({
-  baseURL: 'literary-dorothea-pinnacle-4319ee2a.koyeb.app/' || 'http://127.0.0.1:8000',
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000',
 });
 
 // Add a request interceptor to attach the token to every request
