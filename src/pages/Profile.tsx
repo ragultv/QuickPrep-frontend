@@ -82,8 +82,8 @@ export default function Profile({ onLogout }: ProfileProps) {  // ← changed: a
     return <div className="text-center py-20">Loading profile...</div>;
 
   return (
-    <div className="max-w-5xl mx-auto">
-      <div className="bg-white rounded-xl shadow-lg overflow-hidden p-6 sm:p-8 relative">
+    <div className="w-full max-w-5xl mx-auto px-4 overflow-x-hidden">
+      <div className="bg-white rounded-xl shadow-lg overflow-hidden p-4 sm:p-6 relative w-full">
         <div className="absolute top-6 right-6">
           <button
             onClick={() => navigate('/settings')}
@@ -93,63 +93,16 @@ export default function Profile({ onLogout }: ProfileProps) {  // ← changed: a
             <SettingsIcon className="w-6 h-6" />
           </button>
         </div>
-        <div className="flex items-center space-x-6">
-          <img src={profile.avatar} alt={profile.name} className="h-24 w-24 rounded-full" />
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">{profile.name}</h1>
+        <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-6">
+          <img src={profile.avatar} alt={profile.name} className="h-20 w-20 sm:h-24 sm:w-24 rounded-full" />
+          <div className="text-center sm:text-left">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{profile.name}</h1>
             <p className="text-gray-500">{profile.email}</p>
           </div>
         </div>
 
-        {/* Stats */}
-        {/* <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-indigo-50 p-4 rounded-lg">
-            <div className="flex items-center">
-              <Award className="h-6 w-6 text-indigo-600" />
-              <span className="ml-2 text-sm font-medium text-indigo-600">Average Score</span>
-            </div>
-            <p className="mt-2 text-2xl font-semibold text-gray-900">{profile.averageScore}%</p>
-          </div>
-
-          <div className="bg-green-50 p-4 rounded-lg">
-            <div className="flex items-center">
-              <BookOpen className="h-6 w-6 text-green-600" />
-              <span className="ml-2 text-sm font-medium text-green-600">Quizzes Taken</span>
-            </div>
-            <p className="mt-2 text-2xl font-semibold text-gray-900">{profile.quizzesTaken}</p>
-          </div>
-
-          <div className="bg-purple-50 p-4 rounded-lg">
-            <div className="flex items-center">
-              <Award className="h-6 w-6 text-purple-600" />
-              <span className="ml-2 text-sm font-medium text-purple-600">Top Subject</span>
-            </div>
-            <p className="mt-2 text-2xl font-semibold text-gray-900">{profile.topSubjects[0]}</p>
-          </div>
-        </div>
-
-        {/* Top Subjects */}
-        {/* <div className="mt-8">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">Top Subjects</h2>
-          <div className="flex flex-wrap gap-2">
-            {profile.topSubjects.map((subject) => (
-              <span
-                key={subject}
-                className="px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800"
-              >
-                {subject}
-              </span>
-            ))}
-          </div>
-        </div>  */}
-
         {/* Streak Calendar */}
-        <div className="mt-8 ">
-          <h2 className="text-lg flex justify-center font-medium text-gray-900 mb-4">Session Streak (Jan - Dec)</h2>
-          <div className="overflow-x-auto">
-            <ContributionCalendar contributions={contributions} />
-          </div>
-        </div>
+        
       </div>
     </div>
   );
@@ -183,9 +136,9 @@ function ContributionCalendar({ contributions }: { contributions: { [date: strin
     }
   });
   return (
-    <div className="flex flex-col items-start px-4 pb-2 ">
+    <div className="flex flex-col items-start px-2 pb-2 w-full max-w-full">
       {/* Month labels */}
-      <div className="relative h-5 mb-2 ml-10 w-full" style={{ minWidth: weeks * 16 }}>
+      <div className="relative h-5 mb-2 ml-10 w-full max-w-full">
         {Object.entries(firstDayIndexes).map(([month, idx]) => (
           <span
             key={month}
@@ -196,7 +149,7 @@ function ContributionCalendar({ contributions }: { contributions: { [date: strin
           </span>
         ))}
       </div>
-      <div className="flex">
+      <div className="flex w-full max-w-full">
         {/* Weekday labels */}
         <div className="flex flex-col justify-between mr-2 h-[112px]">
           {['Mon', 'Wed', 'Fri'].map((d, i) => (
@@ -204,7 +157,7 @@ function ContributionCalendar({ contributions }: { contributions: { [date: strin
           ))}
         </div>
         {/* Contribution grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${weeks}, 1fr)`, gridTemplateRows: 'repeat(7, 1fr)', gap: 2 }}>
+        <div className="flex-1 max-w-full" style={{ display: 'grid', gridTemplateColumns: `repeat(${weeks}, 1fr)`, gridTemplateRows: 'repeat(7, 1fr)', gap: 2 }}>
           {Array.from({ length: weeks * 7 }).map((_, idx) => {
             const week = Math.floor(idx / 7);
             const day = idx % 7;
