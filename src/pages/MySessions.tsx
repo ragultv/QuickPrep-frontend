@@ -167,15 +167,7 @@ export default function MySessions() {
                       </>
                     ) : (
                       <>
-                        {session.topic !== "Resume" && (
-                          <button
-                            onClick={() => handleViewQuestions(session.id)}
-                            className="p-2 text-gray-500 hover:text-indigo-600 transition-colors rounded-full hover:bg-gray-100"
-                            title="View questions"
-                          >
-                            <Eye className="w-5 h-5" />
-                          </button>
-                        )}
+                        {/* You can add additional buttons or elements here if needed */}
                         <button
                           onClick={() => handleStartSession(session.id)}
                           className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
