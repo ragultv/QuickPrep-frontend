@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { userStats } from "../utils/api";
+import {auth, userStats } from "../utils/api";
 
 
 interface RecentSession {
@@ -25,9 +25,14 @@ export default function History() {
     
     try {
       const token = localStorage.getItem("access_token");
+      const refresh_token=localStorage.getItem("refresh_token");
       if (!token) {
-        setError("You must be logged in to view your history.");
-        setLoading(false);
+        if(refresh_token){
+        const response=await auth.refreshToken(refresh_token);
+        localStorage.setItem("access_token",response.data.access_token);
+        localStorage.setItem("refresh_token",response.data.refresh_token);
+        }
+        
         return;
       }
 
@@ -94,12 +99,12 @@ export default function History() {
   return (
     <div className="max-w-4xl mx-auto p-4 space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Quiz Session History</h1>
+        <h1 className="text-2xl font-bold"></h1>
         
       </div>
       
       <div className="bg-white rounded-xl shadow-lg p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Quizzes</h2>
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Sessions</h2>
         <div className="space-y-4">
           {sessions.length > 0 ? (
             sessions.map((session) => (

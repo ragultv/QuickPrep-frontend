@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, Fragment } from "react"
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import type { Question } from "../types"
-import { quiz } from "../utils/api"
+import { auth,quiz } from "../utils/api"
 
 export default function Quiz() {
   const navigate = useNavigate()
@@ -131,6 +131,27 @@ export default function Quiz() {
       console.error("Error exiting fullscreen:", error)
     }
   }
+  useEffect(() => {
+    const checkToken = async () => {
+      const token = localStorage.getItem('access_token');
+      const refreshToken = localStorage.getItem('refresh_token');
+  
+      if (!token && refreshToken) {
+        try {
+          const response = await auth.refreshToken(refreshToken);
+          localStorage.setItem('access_token', response.data.access_token);
+          localStorage.setItem('refresh_token', response.data.refresh_token);
+          console.log('✅ Token refreshed');
+        } catch (err) {
+          console.error('❌ Failed to refresh token', err);
+          console.log('❌ Token expired, clearing localStorage');
+          localStorage.clear();
+          navigate('/login');
+        }
+      }
+    };
+    checkToken();
+  }, [navigate]);
 
   // Handle fullscreen change events with improved re-entry
   useEffect(() => {

@@ -1,142 +1,156 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
-  Layout as LayoutIcon, 
+  LayoutDashboard, 
   User, 
   BookPlus, 
   FileSpreadsheet, 
   History, 
   Calendar, 
-  ClipboardList,
-  BarChart2,
-  Settings
+  Settings,
+  Menu,
+  X
 } from 'lucide-react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 
 interface LayoutProps {
   children: React.ReactNode;
 }
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const location = useLocation();
-  const navigate = useNavigate();
+
+  // Route configuration with titles
+  const routes = [
+    { path: '/', title: 'Dashboard' },
+    { path: '/quiz/create', title: 'Create Quiz' },
+    { path: '/create-quiz-resume', title: 'Quiz by Resume' },
+    { path: '/my-sessions', title: 'My Sessions' },
+    { path: '/manage-sessions', title: 'Manage Sessions' },
+    { path: '/history', title: 'History' },
+    { path: '/profile', title: 'Profile' },
+  ];
+
+  // Get current page title
+  const currentRoute = routes.find(route => route.path === location.pathname);
+  const pageTitle = currentRoute?.title || 'Dashboard';
+
+  // Close sidebar when route changes
+  useEffect(() => {
+    setIsSidebarOpen(false);
+  }, [location.pathname]);
+
+  // Handle loading state
+  useEffect(() => {
+    setIsLoading(true);
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [location.pathname]);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex">
+      {/* Overlay for mobile */}
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+      
       {/* Sidebar */}
-      <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 ease-in-out`}>
-        <div className="flex items-center justify-between p-4 border-b">
+      <div 
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#111827] transform transition-transform duration-300 ease-in-out lg:translate-x-0 ${
+          isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+        }`}
+      >
+        <div className="flex items-center justify-between p-4 border-b border-gray-700">
           <div className="flex items-center space-x-2">
-            <LayoutIcon className="h-6 w-6 text-indigo-600" />
-            <span className="text-xl font-semibold text-gray-800">QuickPrep</span>
+            <LayoutDashboard className="h-6 w-6 text-indigo-400" />
+            <span className="text-xl font-semibold text-white">QuickPrep</span>
           </div>
           <button
             onClick={() => setIsSidebarOpen(false)}
-            className="lg:hidden text-gray-500 hover:text-gray-700"
+            className="lg:hidden text-gray-400 hover:text-white transition-colors duration-200"
           >
             <span className="sr-only">Close sidebar</span>
-            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            <X className="h-5 w-5" />
           </button>
         </div>
 
         <nav className="mt-4 px-2">
           <div className="space-y-1">
-            <Link
-              to="/"
-              className={`flex items-center px-4 py-2.5 text-sm font-medium rounded-lg ${
-                location.pathname === '/' ? 'text-indigo-600 bg-indigo-50' : 'text-gray-700 hover:bg-gray-100'
-              }`}
-            >
-              <BarChart2 className="h-5 w-5 mr-3" />
-              Dashboard
-            </Link>
-            <Link
-              to="/profile"
-              className={`flex items-center px-4 py-2.5 text-sm font-medium rounded-lg ${
-                location.pathname === '/profile' ? 'text-indigo-600 bg-indigo-50' : 'text-gray-700 hover:bg-gray-100'
-              }`}
-            >
-              <User className="h-5 w-5 mr-3" />
-              Profile
-            </Link>
-            <Link
-              to="/quiz/create"
-              className={`flex items-center px-4 py-2.5 text-sm font-medium rounded-lg ${
-                location.pathname === '/quiz/create' ? 'text-indigo-600 bg-indigo-50' : 'text-gray-700 hover:bg-gray-100'
-              }`}
-            >
-              <BookPlus className="h-5 w-5 mr-3" />
-              Create Quiz
-            </Link>
-            <Link
-              to="/create-quiz-resume"
-              className={`flex items-center px-4 py-2.5 text-sm font-medium rounded-lg ${
-                location.pathname === '/create-quiz-resume' ? 'text-indigo-600 bg-indigo-50' : 'text-gray-700 hover:bg-gray-100'
-              }`}
-            >
-              <FileSpreadsheet className="h-5 w-5 mr-3" />
-              Quiz by Resume
-            </Link>
-            <Link
-              to="/my-sessions"
-              className={`flex items-center px-4 py-2.5 text-sm font-medium rounded-lg ${
-                location.pathname === '/my-sessions' ? 'text-indigo-600 bg-indigo-50' : 'text-gray-700 hover:bg-gray-100'
-              }`}
-            >
-              <Calendar className="h-5 w-5 mr-3" />
-              My Sessions
-            </Link>
-            <Link
-              to="/manage-sessions"
-              className={`flex items-center px-4 py-2.5 text-sm font-medium rounded-lg ${
-                location.pathname === '/manage-sessions' ? 'text-indigo-600 bg-indigo-50' : 'text-gray-700 hover:bg-gray-100'
-              }`}
-            >
-              <Settings className="h-5 w-5 mr-3" />
-              Manage Sessions
-            </Link>
-            <Link
-              to="/history"
-              className={`flex items-center px-4 py-2.5 text-sm font-medium rounded-lg ${
-                location.pathname === '/history' ? 'text-indigo-600 bg-indigo-50' : 'text-gray-700 hover:bg-gray-100'
-              }`}
-            >
-              <History className="h-5 w-5 mr-3" />
-              History
-            </Link>
+            <NavLink to="/" icon={<LayoutDashboard className="h-5 w-5 mr-3" />} label="Dashboard" currentPath={location.pathname} />
+            <NavLink to="/quiz/create" icon={<BookPlus className="h-5 w-5 mr-3" />} label="Create Quiz" currentPath={location.pathname} />
+            <NavLink to="/create-quiz-resume" icon={<FileSpreadsheet className="h-5 w-5 mr-3" />} label="Quiz by Resume" currentPath={location.pathname} />
+            <NavLink to="/my-sessions" icon={<Calendar className="h-5 w-5 mr-3" />} label="My Sessions" currentPath={location.pathname} />
+            <NavLink to="/manage-sessions" icon={<Settings className="h-5 w-5 mr-3" />} label="Manage Sessions" currentPath={location.pathname} />
+            <NavLink to="/history" icon={<History className="h-5 w-5 mr-3" />} label="History" currentPath={location.pathname} />
           </div>
         </nav>
       </div>
 
-      {/* Main Content */}
-      <div className={`lg:pl-64 ${isSidebarOpen ? '' : 'pl-0'}`}>
-        {/* Mobile Header */}
-        <div className="sticky top-0 z-40 lg:hidden">
-          <div className="flex items-center justify-between bg-white px-4 py-2 shadow-sm">
-            <button
-              onClick={() => setIsSidebarOpen(true)}
-              className="text-gray-500 hover:text-gray-700"
-            >
-              <span className="sr-only">Open sidebar</span>
-              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            </button>
-            <div className="flex items-center space-x-2">
-              <LayoutIcon className="h-6 w-6 text-indigo-600" />
-              <span className="text-xl font-semibold text-gray-800">QuickPrep</span>
+      {/* Main content */}
+      <div className="flex-1 flex flex-col min-h-screen lg:pl-64">
+        {/* Header */}
+        <header className="sticky top-0 z-40 bg-[#111827] shadow-sm">
+          <div className="flex items-center justify-between px-4 py-3">
+            <div className="flex items-center">
+              <button
+                onClick={() => setIsSidebarOpen(true)}
+                className="lg:hidden text-white hover:text-gray-300 mr-2"
+              >
+                <span className="sr-only">Open sidebar</span>
+                <Menu className="h-6 w-6" />
+              </button>
+              <h1 className="text-lg font-bold text-white">{pageTitle}</h1>
             </div>
+            
+            <Link
+              to="/profile"
+              className="flex items-center px-2 py-2 border-2 border-gray-300 rounded-full bg-white transition-colors duration-200"
+            >
+              <User className="h-5 w-5 text-indigo-700" />
+            </Link>
           </div>
-        </div>
+        </header>
 
-        {/* Page Content */}
-        <main className="py-8 px-4 sm:px-6 lg:px-8">
-          {children}
+        {/* Page content */}
+        <main className="flex-1">
+          <div className={`transition-opacity duration-200 ${isLoading ? 'opacity-0' : 'opacity-100'}`}>
+            {children}
+          </div>
         </main>
       </div>
     </div>
+  );
+};
+
+// NavLink component
+interface NavLinkProps {
+  to: string;
+  icon: React.ReactNode;
+  label: string;
+  currentPath: string;
+}
+
+const NavLink: React.FC<NavLinkProps> = ({ to, icon, label, currentPath }) => {
+  const isActive = currentPath === to;
+  
+  return (
+    <Link
+      to={to}
+      className={`flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors duration-200 ${
+        isActive 
+          ? 'text-white bg-indigo-600' 
+          : 'text-gray-300 hover:text-white hover:bg-gray-700'
+      }`}
+    >
+      {icon}
+      {label}
+    </Link>
   );
 };
 

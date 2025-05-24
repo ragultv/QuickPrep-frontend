@@ -11,6 +11,8 @@ export default function Settings() {
   const handleLogout = () => {
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
+    // Dispatch storage event to notify other components
+    window.dispatchEvent(new Event('storage'));
     navigate('/login', { replace: true });
   };
 

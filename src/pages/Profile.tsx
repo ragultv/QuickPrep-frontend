@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Mail, Lock, Award, BookOpen, LogOut, Settings as SettingsIcon } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import type { UserProfile } from '../types';
-import { users, userStats } from '../utils/api';
+import {auth, users, userStats } from '../utils/api';
 import { eachDayOfInterval, startOfYear, endOfYear, format, isSameDay } from 'date-fns';
 
 // ← added: define props so Profile can receive onLogout callback
@@ -18,6 +18,22 @@ export default function Profile({ onLogout }: ProfileProps) {  // ← changed: a
   useEffect(() => {
     const fetchProfile = async () => {
       try {
+        let token = localStorage.getItem("access_token");
+        const refreshToken = localStorage.getItem("refresh_token");
+  
+        // If no access token but refresh token exists, try to refresh
+        if (!token && refreshToken) {
+          const response = await auth.refreshToken(refreshToken);
+          localStorage.setItem("access_token", response.data.access_token);
+          localStorage.setItem("refresh_token", response.data.refresh_token);
+        }
+  
+        if (!token) {
+          navigate('/login');
+          return;
+        }
+  
+        // Now we have a valid token, continue fetching
         const res = await users.getMe();
         setProfile({
           name: res.data.name,
@@ -28,12 +44,11 @@ export default function Profile({ onLogout }: ProfileProps) {  // ← changed: a
           topSubjects: ['JavaScript', 'Python'],
           averageScore: 85
         });
-        // Fetch session history for streak calendar
+  
         const histRes = await userStats.getHistory();
         const contrib: { [date: string]: number } = {};
         if (Array.isArray(histRes.data)) {
           histRes.data.forEach((session: any) => {
-            // Use created_at for streak calendar
             const date = session.created_at
               ? format(new Date(session.created_at), 'yyyy-MM-dd')
               : session.completed_at
@@ -45,13 +60,16 @@ export default function Profile({ onLogout }: ProfileProps) {  // ← changed: a
           });
         }
         setContributions(contrib);
+  
       } catch (err) {
         console.error(err);
         navigate('/login');
       }
     };
+  
     fetchProfile();
   }, [navigate]);
+  
 
   const handleLogout = () => {
     localStorage.removeItem('access_token');
@@ -84,7 +102,7 @@ export default function Profile({ onLogout }: ProfileProps) {  // ← changed: a
         </div>
 
         {/* Stats */}
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="bg-indigo-50 p-4 rounded-lg">
             <div className="flex items-center">
               <Award className="h-6 w-6 text-indigo-600" />
@@ -111,7 +129,7 @@ export default function Profile({ onLogout }: ProfileProps) {  // ← changed: a
         </div>
 
         {/* Top Subjects */}
-        <div className="mt-8">
+        {/* <div className="mt-8">
           <h2 className="text-lg font-medium text-gray-900 mb-4">Top Subjects</h2>
           <div className="flex flex-wrap gap-2">
             {profile.topSubjects.map((subject) => (
@@ -123,11 +141,11 @@ export default function Profile({ onLogout }: ProfileProps) {  // ← changed: a
               </span>
             ))}
           </div>
-        </div>
+        </div>  */}
 
         {/* Streak Calendar */}
-        <div className="mt-8">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">Session Streak (Jan - Dec)</h2>
+        <div className="mt-8 ">
+          <h2 className="text-lg flex justify-center font-medium text-gray-900 mb-4">Session Streak (Jan - Dec)</h2>
           <div className="overflow-x-auto">
             <ContributionCalendar contributions={contributions} />
           </div>
@@ -165,7 +183,7 @@ function ContributionCalendar({ contributions }: { contributions: { [date: strin
     }
   });
   return (
-    <div className="flex flex-col items-start px-4 pb-2">
+    <div className="flex flex-col items-start px-4 pb-2 ">
       {/* Month labels */}
       <div className="relative h-5 mb-2 ml-10 w-full" style={{ minWidth: weeks * 16 }}>
         {Object.entries(firstDayIndexes).map(([month, idx]) => (

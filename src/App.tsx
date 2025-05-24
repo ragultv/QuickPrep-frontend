@@ -21,24 +21,78 @@ import UserProfile from './pages/UserProfile';
 import Settings from './pages/Settings';
 import HostedQuiz from './pages/HostedQuiz';
 
+import { auth } from './utils/api';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
 }
 
 function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const isLoggedIn = !!localStorage.getItem('access_token');
-  if (!isLoggedIn) {
+  const [isLoading, setIsLoading] = React.useState(true);
+  const [isAuthenticated, setIsAuthenticated] = React.useState(false);
+
+  React.useEffect(() => {
+    const checkAuth = async () => {
+      const token = localStorage.getItem('access_token');
+      const refreshToken = localStorage.getItem('refresh_token');
+
+      if (token) {
+        setIsAuthenticated(true);
+        setIsLoading(false);
+        return;
+      }
+
+      if (!token && refreshToken) {
+        try {
+          const response = await auth.refreshToken(refreshToken);
+          localStorage.setItem('access_token', response.data.access_token);
+          localStorage.setItem('refresh_token', response.data.refresh_token);
+          console.log('Refreshed token:', response.data);
+          window.dispatchEvent(new Event('storage'));
+          setIsAuthenticated(true);
+        } catch (err) {
+          console.error('Failed to refresh token:', err);
+          localStorage.removeItem('refresh_token');
+          setIsAuthenticated(false);
+        }
+      } else {
+        setIsAuthenticated(false);
+      }
+      setIsLoading(false);
+    };
+
+    checkAuth();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600" />
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
+
   return <>{children}</>;
 }
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = React.useState(() => {
-    // Check if user has a valid token in localStorage
     return !!localStorage.getItem('access_token');
   });
+
+  // Listen for storage changes to keep isLoggedIn in sync
+  React.useEffect(() => {
+    const handleStorageChange = () => {
+      setIsLoggedIn(!!localStorage.getItem('access_token'));
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
 
   return (
     <Router>
@@ -46,7 +100,11 @@ function App() {
         {/* Public Routes */}
         <Route
           path="/login"
-          element={isLoggedIn ? <Navigate to="/" replace /> : <LoginForm onLogin={() => setIsLoggedIn(true)} />}
+          element={
+            localStorage.getItem('access_token') 
+              ? <Navigate to="/" replace /> 
+              : <LoginForm />
+          }
         />
         <Route
           path="/register"

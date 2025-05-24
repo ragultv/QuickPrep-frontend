@@ -27,6 +27,10 @@ const LoginForm = ({ onLogin }: LoginFormProps) => {
 
       if (res.data.access_token) {
         localStorage.setItem('access_token', res.data.access_token);
+        localStorage.setItem('refresh_token', res.data.refresh_token);
+        // Dispatch storage event to notify other components
+        window.dispatchEvent(new Event('storage'));
+        console.log('✅ Token saved to localStorage');
         onLogin?.();
         
         // Check for stored redirect path

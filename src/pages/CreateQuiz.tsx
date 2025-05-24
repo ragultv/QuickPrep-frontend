@@ -1,7 +1,7 @@
-import React, { useState, useRef } from 'react';
+import React, {useEffect, useState, useRef } from 'react';
 import {  useNavigate } from 'react-router-dom';
 import { Loader2, Sparkles, BrainCircuit, Check, Home, Users, User } from 'lucide-react';
-import { quiz, promptEnhancer } from '../utils/api';
+import { auth,quiz, promptEnhancer } from '../utils/api';
 
 export default function CreateQuiz() {
   const [prompt, setPrompt] = useState('');
@@ -26,7 +26,30 @@ export default function CreateQuiz() {
     setIsLoading(true);
     setError('');
 
+    // ── 1) AUTHENTICATION CHECK ─────────────────────────────────────────────
+    const checkAuth = async () => {
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        const refreshToken = localStorage.getItem('refresh_token');
+        if (refreshToken) {
+          try {
+            const response = await auth.refreshToken(refreshToken);
+            localStorage.setItem('access_token', response.data.access_token);
+            localStorage.setItem('refresh_token', response.data.refresh_token);
+          } catch (error) {
+              console.error('Failed to refresh token:', error);
+            navigate('/login', { replace: true });
+            return false;
+          }
+        }
+      }
+      return true;
+    };
+
     try {
+      const isAuth = await checkAuth();
+      if (!isAuth) return;
+
       const response = await quiz.generateQuestions(prompt);
       const { ids, topics, difficulties, companies } = response.data;
       
@@ -110,7 +133,7 @@ export default function CreateQuiz() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 py-12 px-4 sm:px-6">
       <div className="max-w-2xl mx-auto">
-        <h1 className="text-3xl font-bold text-gray-900 mb-3 text-center sm:text-left">Create a New Quiz</h1>
+        <h1 className="text-3xl font-bold text-gray-900 mb-3 text-center sm:text-left"></h1>
         <p className="text-gray-600 mb-8 text-center sm:text-left">
           Design your perfect quiz with AI assistance
         </p>

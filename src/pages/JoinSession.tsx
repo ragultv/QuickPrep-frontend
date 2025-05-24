@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { quiz } from '../utils/api';
+import { auth, quiz } from '../utils/api';
 import { Users, Clock, Play } from 'lucide-react';
 
 interface HostedSession {
@@ -46,6 +46,12 @@ export default function JoinSession() {
 
       const token = localStorage.getItem("access_token");
       if (!token) {
+        const refresh_token=localStorage.getItem("refresh_token");
+        if(refresh_token){
+        const response=await auth.refreshToken(refresh_token);
+        localStorage.setItem("access_token",response.data.access_token);
+        localStorage.setItem("refresh_token",response.data.refresh_token);
+        }
         // Store the session ID in localStorage for redirect after login
         localStorage.setItem("redirect_after_login", `/join-session/${sessionId}`);
         navigate("/login", { replace: true });

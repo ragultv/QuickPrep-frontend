@@ -20,9 +20,40 @@ api.interceptors.request.use(
 // Add a response interceptor for global error handling
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
+    const originalRequest = error.config;
+
+    // If the error is 401 and we haven't tried to refresh the token yet
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+      const refreshToken = localStorage.getItem('refresh_token');
+
+      if (refreshToken) {
+        try {
+          const response = await auth.refreshToken(refreshToken);
+          localStorage.setItem('access_token', response.data.access_token);
+          localStorage.setItem('refresh_token', response.data.refresh_token);
+          window.dispatchEvent(new Event('storage'));
+
+          // Update the authorization header and retry the original request
+          originalRequest.headers.Authorization = `Bearer ${response.data.access_token}`;
+          return api(originalRequest);
+        } catch (refreshError) {
+          // If refresh token fails, clear everything and redirect to login
+          localStorage.removeItem('access_token');
+          localStorage.removeItem('refresh_token');
+          window.dispatchEvent(new Event('storage'));
+          window.location.href = '/login';
+          return Promise.reject(refreshError);
+        }
+      }
+    }
+
+    // For any other error or if refresh token is not available
     if (error.response?.status === 401) {
       localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+      window.dispatchEvent(new Event('storage'));
       window.location.href = '/login';
     }
     return Promise.reject(error);
@@ -42,6 +73,11 @@ export const auth = {
       },
     });
     console.log('Auth response:', response);
+    return response;
+  },
+  refreshToken: async (refreshToken: string) => {
+    const response = await api.post('/auth/refresh', { refresh_token: refreshToken });
+    // console.log('Refresh token response:', response); 
     return response;
   },
   googleLogin: () => {
@@ -76,7 +112,7 @@ export const quiz = {
   submitAnswers: (data: { quiz_session_id: string; answers: Array<{ question_id: string; selected_option: string }> }) => api.post('/answers/submit', data),
   getResults: (sessionId: string) => api.get(`/quiz-results/${sessionId}`),
   cancelGeneration: (sessionId: string) => api.post(`/questions/cancel-generation/${sessionId}`),
-  getSessions: () => api.get('/quiz-sessions/hosted'),
+  getSessions: () => api.get('/quiz-sessions'),
   showSessions:()=>api.get('/quiz-sessions/'),
   getSession: (sessionId: string) => api.get(`/quiz-sessions/${sessionId}`),
   startSession: (sessionId: string) => api.post(`/quiz-sessions/${sessionId}/start`),

@@ -1,6 +1,7 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Loader2, Sparkles, BrainCircuit, Check, Home } from 'lucide-react';
-import { resumeQuiz, promptEnhancer } from '../utils/api';
+import { useNavigate } from 'react-router-dom';
+import {auth, resumeQuiz, promptEnhancer } from '../utils/api';
 
 export default function UploadAndGenerateQuiz() {
   const [file, setFile] = useState<File | null>(null);
@@ -12,6 +13,7 @@ export default function UploadAndGenerateQuiz() {
   const [error, setError] = useState('');
   const [isCompleted, setIsCompleted] = useState(false);
   const isSubmitting = useRef(false);
+  const navigate = useNavigate();
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -32,6 +34,27 @@ export default function UploadAndGenerateQuiz() {
       setIsUploading(false);
     }
   };
+  useEffect(() => {
+    const checkToken = async () => {
+      const token = localStorage.getItem('access_token');
+      const refreshToken = localStorage.getItem('refresh_token');
+  
+      if (!token && refreshToken) {
+        try {
+          const response = await auth.refreshToken(refreshToken);
+          localStorage.setItem('access_token', response.data.access_token);
+          localStorage.setItem('refresh_token', response.data.refresh_token);
+          console.log('✅ Token refreshed');
+        } catch (err) {
+          console.error('❌ Failed to refresh token', err);
+          console.log('❌ Token expired, clearing localStorage');
+          localStorage.clear();
+          navigate('/login');
+        }
+      }
+    };
+    checkToken();
+  }, [navigate]);
 
   const typeEffect = (fullText: string) => {
     let i = 0;
@@ -99,7 +122,7 @@ export default function UploadAndGenerateQuiz() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 py-12 px-4 sm:px-6">
       <div className="max-w-2xl mx-auto">
-        <h1 className="text-3xl font-bold text-gray-900 mb-3 text-center sm:text-left">Resume-Based Quiz Creator</h1>
+        <h1 className="text-3xl font-bold text-gray-900 mb-3 text-center sm:text-left"></h1>
         <p className="text-gray-600 mb-8 text-center sm:text-left">
           Upload your resume and let AI create personalized questions
         </p>

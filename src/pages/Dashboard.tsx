@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { BookOpen, Trophy, Clock } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { users, userStats as userStatsApi } from '../utils/api';
+import { auth, users, userStats as userStatsApi } from '../utils/api';
 
 interface RecentSession {
   session_id: string;
@@ -25,25 +25,29 @@ export default function Dashboard() {
   const [userStats, setUserStats] = useState<UserStats | null>(null);
   const [userName, setUserName] = useState('');
 
-  // ── 1) AUTHENTICATION CHECK ─────────────────────────────────────────────
   useEffect(() => {
-    const checkAuth = async () => {
+    const checkToken = async () => {
       const token = localStorage.getItem('access_token');
-      if (!token) {
-        navigate('/login', { replace: true });
-        return;
-      }
-
-      try {
-        await users.getMe();
-      } catch (error) {
-        localStorage.removeItem('access_token');
-        navigate('/login', { replace: true });
+      const refreshToken = localStorage.getItem('refresh_token');
+  
+      if (!token && refreshToken) {
+        try {
+          const response = await auth.refreshToken(refreshToken);
+          localStorage.setItem('access_token', response.data.access_token);
+          localStorage.setItem('refresh_token', response.data.refresh_token);
+          console.log('✅ Token refreshed');
+        } catch (err) {
+          console.error('❌ Failed to refresh token', err);
+          console.log('❌ Token expired, clearing localStorage');
+          localStorage.clear();
+          navigate('/login');
+        }
       }
     };
-
-    checkAuth();
+  
+    checkToken();
   }, [navigate]);
+  
 
   // ── 2) BLOCK BACK BUTTON ───────────────────────────────────────────────
   useEffect(() => {

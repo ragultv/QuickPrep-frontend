@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
-import { users, userStats as userStatsApi } from '../utils/api';
+import {useNavigate, useParams } from 'react-router-dom';
+import {auth, users, userStats as userStatsApi } from '../utils/api';
 import { Award, BookOpen } from 'lucide-react';
 
 interface UserProfile {
@@ -18,6 +18,29 @@ export default function UserProfile() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const checkToken = async () => {
+      const token = localStorage.getItem('access_token');
+      const refreshToken = localStorage.getItem('refresh_token');
+  
+      if (!token && refreshToken) {
+        try {
+          const response = await auth.refreshToken(refreshToken);
+          localStorage.setItem('access_token', response.data.access_token);
+          localStorage.setItem('refresh_token', response.data.refresh_token);
+          console.log('✅ Token refreshed');
+        } catch (err) {
+          console.error('❌ Failed to refresh token', err);
+          console.log('❌ Token expired, clearing localStorage');
+          localStorage.clear();
+          navigate('/login');
+        }
+      }
+    };
+    checkToken();
+  }, [navigate]);
 
   useEffect(() => {
     const fetchProfile = async () => {

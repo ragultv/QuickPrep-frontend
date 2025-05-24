@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { CheckCircle, XCircle } from "lucide-react";
-import { quiz } from "../utils/api";
+import { auth,quiz } from "../utils/api";
 
 interface QuestionResult {
   question_id: string;
@@ -25,6 +25,28 @@ export default function QuizResultPage() {
   const [result, setResult] = useState<QuizResultResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    const checkToken = async () => {
+      const token = localStorage.getItem('access_token');
+      const refreshToken = localStorage.getItem('refresh_token');
+  
+      if (!token && refreshToken) {
+        try {
+          const response = await auth.refreshToken(refreshToken);
+          localStorage.setItem('access_token', response.data.access_token);
+          localStorage.setItem('refresh_token', response.data.refresh_token);
+          console.log('✅ Token refreshed');
+        } catch (err) {
+          console.error('❌ Failed to refresh token', err);
+          console.log('❌ Token expired, clearing localStorage');
+          localStorage.clear();
+          navigate('/login');
+        }
+      }
+    };
+    checkToken();
+  }, [navigate]);
 
   useEffect(() => {
     const fetchResults = async () => {

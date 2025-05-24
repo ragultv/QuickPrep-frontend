@@ -5,13 +5,12 @@ interface ProtectedRouteProps {
 }
 
 export default function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const location = useLocation();
   const token = localStorage.getItem('access_token');
+  const location = useLocation();
 
   if (!token) {
-    // Redirect to login page but save the attempted url
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   return <>{children}</>;
-} 
+}

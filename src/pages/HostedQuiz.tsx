@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, Fragment, useCallback } from "react"
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom"
 import { ChevronLeft, ChevronRight, Play, Clock } from "lucide-react"
 import type { Question } from "../types"
-import { quiz } from "../utils/api"
+import { auth,quiz } from "../utils/api"
 
 // Page state for participant flow in hosted sessions
 type PageState = 'initial_load' | 'waiting_for_host' | 'prompt_participant_start' | 'loading_questions' | 'quiz_active' | 'error_page';
@@ -84,6 +84,28 @@ export default function HostedQuiz() {
       console.error("Error exiting fullscreen:", exitError.message);
     }
   };
+
+  useEffect(() => {
+    const checkToken = async () => {
+      const token = localStorage.getItem('access_token');
+      const refreshToken = localStorage.getItem('refresh_token');
+  
+      if (!token && refreshToken) {
+        try {
+          const response = await auth.refreshToken(refreshToken);
+          localStorage.setItem('access_token', response.data.access_token);
+          localStorage.setItem('refresh_token', response.data.refresh_token);
+          console.log('✅ Token refreshed');
+        } catch (err) {
+          console.error('❌ Failed to refresh token', err);
+          console.log('❌ Token expired, clearing localStorage');
+          localStorage.clear();
+          navigate('/login');
+        }
+      }
+    };
+    checkToken();
+  }, [navigate]);
   
   // Effect to correctly update isFullScreen state
   useEffect(() => {
