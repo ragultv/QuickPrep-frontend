@@ -88,6 +88,9 @@ export const auth = {
 // User endpoints
 export const users = {
   register: (data: { name: string; email: string; password: string }) => api.post('/users/register', data),
+  usernameAvailable: (username: string) =>api.get(`/users/check-username`, { params: { username } }),
+  sendOtp: (email: string) => api.post('/users/send-otp', { email }),
+  verifyOtp: (data: { email: string; otp: string }) => api.post('/users/verify-otp', data),
   getMe: () => api.get('/users/me'),
   getUserById: (userId: string) => api.get(`/users/${userId}`),
   updateProfile: (data: { name: string; email: string }) => api.patch('/users/update', data),
