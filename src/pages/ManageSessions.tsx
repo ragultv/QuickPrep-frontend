@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {auth, quiz } from '../utils/api';
 import { useNavigate } from 'react-router-dom';
-import { Users, Copy, Check } from 'lucide-react';
+import { Users, Copy, Check, Eye } from 'lucide-react';
 
 interface HostedSession {
   id: string;
@@ -51,6 +51,10 @@ export default function ManageSessions() {
     };
     fetchData();
   }, []);
+
+  const handleViewQuestions = (quizsession_id: string) => {
+    navigate(`/hosted-quiz?session_id=${quizsession_id}&readonly=true`)
+  }
 
   const handleViewSessionDetails = (sessionId: string) => {
     navigate(`/session-details/${sessionId}`);
@@ -126,13 +130,19 @@ export default function ManageSessions() {
             ) : (
               filteredSessions.map(session => (
                 <div 
-                  key={session.id} 
-                  className="bg-white rounded-lg shadow-sm border p-4 hover:shadow-md transition-shadow cursor-pointer"
-                  onClick={() => handleViewSessionDetails(session.id)}
+                  // key={session.id} 
+                   className="bg-white rounded-lg shadow-sm border p-4 hover:shadow-md transition-shadow cursor-pointer"
+                  // onClick={() => handleViewSessionDetails(session.id)}
                 >
                   <div className="flex justify-between items-start">
                     <div>
-                      <div className="font-semibold text-lg">{session.title}</div>
+                      <div className="font-semibold text-lg">
+                        <button
+                          onClick={() => handleViewSessionDetails(session.id)}
+                          className="text-indigo-600 hover:underline">
+                          {session.title}
+                        </button>
+                      </div>
                       <div className="text-sm text-gray-500 mt-2">
                         <div className="flex items-center gap-2">
                           <Users className="w-4 h-4" />
@@ -157,6 +167,15 @@ export default function ManageSessions() {
                               <Copy className="w-5 h-5" />
                             )}
                           </button>
+                          
+                          <button
+                            onClick={() => handleViewQuestions(session.id)}
+                            className="p-2 text-gray-500 hover:text-indigo-600 transition-colors rounded-full hover:bg-gray-100"
+                            title="View questions"
+                          >
+                            <Eye className="w-5 h-5" />
+                          </button>
+
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
