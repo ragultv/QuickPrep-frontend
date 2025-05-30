@@ -40,19 +40,20 @@ export default function HostedQuiz() {
   const location = useLocation()
   const [searchParams] = useSearchParams()
 
-  // Robust extraction of session IDs
-  const quizSessionIdFromParams = searchParams.get("session_id");
-  const hostedSessionIdFromState = location.state?.hosted_session_id; // Used for polling host status
-  const quizSessionId = searchParams.get("session_id") || location.state?.quiz_session_id || quizSessionIdFromParams || null;
-  // const hostedSessionId = location.state?.hosted_session_id || searchParams.get("hosted_session_id") || hostedSessionIdFromState || null; // Unused variable
+  // Robust extraction of session IDs from URL
+  const participantQuizSessionIdFromUrl = searchParams.get("session_id");
+  const parentHostedSessionIdFromUrl = searchParams.get("parent_hosted_session_id");
 
   // States for participant flow in hosted sessions
   const [pageState, setPageState] = useState<PageState>('initial_load');
-  const isHostedSessionFromState = location.state?.isHostedSession || true;
-  const initialIsLiveFromState = location.state?.isSessionLive || false;
-  const [currentHostedSessionIsLive, setCurrentHostedSessionIsLive] = useState(initialIsLiveFromState);
+  const isHostedSession = !!parentHostedSessionIdFromUrl || location.state?.isHostedSession || true; // Prioritize URL
+  const initialIsLive = !!location.state?.isSessionLive; // State is less critical here if polling covers it
+  const [currentHostedSessionIsLive, setCurrentHostedSessionIsLive] = useState(initialIsLive);
   const getParticipantStartedKey = (quiz_session_id: string | null) => quiz_session_id ? `${STORAGE_PREFIX}participant_started_${quiz_session_id}` : null;
   const [participantHasClickedStart, setParticipantHasClickedStart] = useState(false);
+  
+  // The main quizSessionId for this participant's quiz content
+  const [quizSessionId, setQuizSessionId] = useState<string | null>(participantQuizSessionIdFromUrl);
 
   const [questions, setQuestions] = useState<Question[]>([])
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
@@ -208,7 +209,7 @@ export default function HostedQuiz() {
         };
       });
 
-      if (isHostedSessionFromState) {
+      if (isHostedSession) {
         await quiz.submitHostedAnswers({
           quiz_session_id: quizSessionId!,
           answers: answersPayload,
@@ -224,6 +225,8 @@ export default function HostedQuiz() {
       if (storageKey) {
         localStorage.removeItem(storageKey);
       }
+
+      localStorage.removeItem(`hosted_quiz_state_${quizSessionId}`);
 
       navigate(`/quiz-result/${quizSessionId}`);
     } catch (err: unknown) {
@@ -241,7 +244,7 @@ export default function HostedQuiz() {
     selectedAnswers, 
     isFullScreen, 
     questions, 
-    isHostedSessionFromState, 
+    isHostedSession, 
     getStorageKey, // Memoized 
     navigate, 
     handleApiError, // Memoized
@@ -299,6 +302,7 @@ export default function HostedQuiz() {
 
     const stateToSave = {
       quizSessionId,
+      parentHostedSessionId: parentHostedSessionIdFromUrl,
       currentQuestionIndex,
       selectedAnswers,
       timeRemaining,
@@ -355,14 +359,14 @@ export default function HostedQuiz() {
   }, [quizSessionId, currentQuestionIndex, selectedAnswers, timeRemaining, questions, pageState])
 
   const fetchQuizData = async (signal: AbortSignal) => {
-    const sessionIdForFetch = searchParams.get("session_id");
+    const sessionIdForFetch = participantQuizSessionIdFromUrl;
     const questionIdsFromUrl = searchParams.get("ids")?.split(",");
     const preloadedSessionData = location.state?.preloadedSession;
 
     if (!isMountedRef.current) return;
     setIsLoading(true);
 
-    if (!sessionIdForFetch && !questionIdsFromUrl && !preloadedSessionData && !hostedSessionIdFromState) {
+    if (!sessionIdForFetch && !questionIdsFromUrl && !preloadedSessionData && !parentHostedSessionIdFromUrl) {
       safeStateUpdate(() => {
         setError("No questions or session found to load.");
         setPageState('error_page');
@@ -382,9 +386,9 @@ export default function HostedQuiz() {
       return;
     }
 
-    if (!isHostedSessionFromState || (isHostedSessionFromState && participantHasClickedStart)) {
+    if (!isHostedSession || (isHostedSession && participantHasClickedStart)) {
         const savedState = loadStateFromStorage();
-        if (savedState && savedState.quizSessionId === sessionIdForFetch) {
+        if (savedState && savedState.quizSessionId === sessionIdForFetch && savedState.parentHostedSessionId === parentHostedSessionIdFromUrl) {
             safeStateUpdate(() => {
                 setQuestions(savedState.questions);
                 setCurrentQuestionIndex(savedState.currentQuestionIndex);
@@ -406,7 +410,7 @@ export default function HostedQuiz() {
         sessionResponse = { data: preloadedSessionData };
         const questionIdsForPreloaded = sessionResponse.data.questions.map((q: { question_id: string }) => q.question_id);
         questionsResponse = await quiz.getQuestions(questionIdsForPreloaded.join(","));
-      } else if (isHostedSessionFromState && quizSessionId) {
+      } else if (isHostedSession && quizSessionId) {
         sessionResponse = await quiz.getSession(quizSessionId);
         const questionIds = sessionResponse.data.questions.map((q: { question_id: string }) => q.question_id);
         if (Array.isArray(questionIds) && questionIds.length > 0) {
@@ -416,7 +420,7 @@ export default function HostedQuiz() {
         }
       } else if (sessionIdForFetch) {
         sessionResponse = await quiz.getSession(sessionIdForFetch);
-        if (!isHostedSessionFromState && !sessionResponse.data.started_at && !isReadonly) {
+        if (!isHostedSession && !sessionResponse.data.started_at && !isReadonly) {
            safeStateUpdate(() => {
             setError("Session not started. Please start the session from My Sessions.");
             setPageState('error_page');
@@ -474,8 +478,8 @@ export default function HostedQuiz() {
 
   useEffect(() => {
     isMountedRef.current = true;
-    if (isHostedSessionFromState && quizSessionIdFromParams && hostedSessionIdFromState) {
-      const key = getParticipantStartedKey(quizSessionIdFromParams);
+    if (isHostedSession && participantQuizSessionIdFromUrl && parentHostedSessionIdFromUrl) {
+      const key = getParticipantStartedKey(participantQuizSessionIdFromUrl);
       const alreadyClicked = key ? !!localStorage.getItem(key) : false;
       setParticipantHasClickedStart(alreadyClicked);
 
@@ -487,27 +491,27 @@ export default function HostedQuiz() {
         setPageState('waiting_for_host');
       }
       setIsLoading(false);
-    } else if (!isHostedSessionFromState) {
+    } else if (!isHostedSession) {
       setPageState('loading_questions');
     } else {
       setPageState('error_page');
-      setError("Required session information is missing for hosted session.");
+      setError("Required session information is missing from URL for hosted session.");
       setIsLoading(false);
     }
     return () => { isMountedRef.current = false; }
-  }, [isHostedSessionFromState, quizSessionIdFromParams, currentHostedSessionIsLive, hostedSessionIdFromState]);
+  }, [isHostedSession, participantQuizSessionIdFromUrl, parentHostedSessionIdFromUrl, currentHostedSessionIsLive]);
 
 
   useEffect(() => {
     let pollInterval: NodeJS.Timeout | null = null;
-    if (isHostedSessionFromState && pageState === 'waiting_for_host' && hostedSessionIdFromState) {
+    if (isHostedSession && pageState === 'waiting_for_host' && parentHostedSessionIdFromUrl) {
       pollInterval = setInterval(async () => {
         if (!isMountedRef.current) {
           if (pollInterval) clearInterval(pollInterval);
           return;
         }
         try {
-          const res = await quiz.getHostedSession(hostedSessionIdFromState);
+          const res = await quiz.getHostedSession(parentHostedSessionIdFromUrl);
           if (res.data.started_at && isMountedRef.current) {
             setCurrentHostedSessionIsLive(true);
             setPageState('prompt_participant_start');
@@ -529,7 +533,7 @@ export default function HostedQuiz() {
     return () => {
       if (pollInterval) clearInterval(pollInterval);
     };
-  }, [isHostedSessionFromState, pageState, hostedSessionIdFromState]);
+  }, [isHostedSession, pageState, parentHostedSessionIdFromUrl]);
 
   useEffect(() => {
     const abortController = new AbortController();
@@ -767,17 +771,59 @@ export default function HostedQuiz() {
   const isLastQuestion = currentQuestionIndex === questions.length - 1;
 
   const handleParticipantClickStartQuiz = () => {
-    if (!quizSessionIdFromParams) {
+    if (!participantQuizSessionIdFromUrl) {
       setError("Cannot start quiz: Quiz Session ID is missing from URL.");
       setPageState('error_page');
       return;
     }
-    const key = getParticipantStartedKey(quizSessionIdFromParams);
+    const key = getParticipantStartedKey(participantQuizSessionIdFromUrl);
     if (key) localStorage.setItem(key, "true");
     setParticipantHasClickedStart(true);
     setIsLoading(true);
     setPageState('loading_questions');
   };
+
+  // --- Refresh Logic: Save and Restore State ---
+  // Save state to localStorage whenever relevant state changes
+  useEffect(() => {
+    if (!quizSessionId || questions.length === 0) return;
+    const stateToSave = {
+      quizSessionId,
+      parentHostedSessionId: parentHostedSessionIdFromUrl,
+      currentQuestionIndex,
+      selectedAnswers,
+      timeRemaining,
+      questions,
+      timestamp: Date.now(),
+    };
+    localStorage.setItem(`hosted_quiz_state_${quizSessionId}`, JSON.stringify(stateToSave));
+  }, [quizSessionId, parentHostedSessionIdFromUrl, currentQuestionIndex, selectedAnswers, timeRemaining, questions]);
+
+  // Restore state from localStorage on mount
+  useEffect(() => {
+    if (participantQuizSessionIdFromUrl) {
+      const saved = localStorage.getItem(`hosted_quiz_state_${participantQuizSessionIdFromUrl}`);
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (parsed.quizSessionId === participantQuizSessionIdFromUrl && 
+              parsed.parentHostedSessionId === parentHostedSessionIdFromUrl && 
+              parsed.questions && parsed.selectedAnswers) {
+            
+            setQuizSessionId(parsed.quizSessionId);
+            setQuestions(parsed.questions);
+            setCurrentQuestionIndex(parsed.currentQuestionIndex);
+            setSelectedAnswers(parsed.selectedAnswers);
+            setTimeRemaining(parsed.timeRemaining);
+          } else {
+            localStorage.removeItem(`hosted_quiz_state_${participantQuizSessionIdFromUrl}`);
+          }
+        } catch (e) {
+            localStorage.removeItem(`hosted_quiz_state_${participantQuizSessionIdFromUrl}`);
+        }
+      }
+    }
+  }, [participantQuizSessionIdFromUrl, parentHostedSessionIdFromUrl]);
 
   if (pageState === 'initial_load' || pageState === 'loading_questions') {
     if (isLoading && questions.length === 0) {
@@ -814,7 +860,7 @@ export default function HostedQuiz() {
     );
   }
 
-  if (isHostedSessionFromState) {
+  if (isHostedSession) {
     if (pageState === 'waiting_for_host') {
       return (
         <div className="flex flex-col items-center justify-center h-screen bg-gray-100 p-4 text-center">
@@ -842,162 +888,244 @@ export default function HostedQuiz() {
   }
 
   if (pageState === 'quiz_active' && questions.length > 0 && quizSessionId) {
+    // Timer display logic
+    const timerDisplay = formatTimeRemaining();
+    // Mobile Question Navigator Logic
+    const getMobileNavigatorIndices = () => {
+      if (questions.length <= 3) {
+        return questions.map((_, i) => i);
+      }
+      if (currentQuestionIndex === 0) {
+        return [0, 1, 2];
+      }
+      if (currentQuestionIndex === questions.length - 1) {
+        return [questions.length - 3, questions.length - 2, questions.length - 1];
+      }
+      return [currentQuestionIndex - 1, currentQuestionIndex, currentQuestionIndex + 1];
+    };
+    const mobileNavigatorIndices = getMobileNavigatorIndices();
     return (
-      <div 
-        ref={quizContainerRef} 
-        className="h-screen bg-gray-50 flex flex-col overflow-hidden"
-      >
-        <MobileQuestionNavigation />
-
-        {!isReadonly && (
-          <div className="sticky top-0 z-10 bg-white shadow-sm p-2 flex justify-between items-center">
-            <div className="bg-white rounded-lg shadow-sm p-2 flex items-center gap-2">
-              <span className="text-sm font-medium">Time Remaining:</span>
-              <span className="font-mono font-bold text-lg">{formatTimeRemaining()}</span>
-            </div>
-          </div>
-        )}
-
-        <div className="flex-1 overflow-hidden">
-          <div className="flex flex-col md:flex-row w-full max-w-7xl mx-auto p-4 gap-4 h-full">
-            <div className="hidden md:block w-full md:w-1/3 bg-white rounded-xl shadow-lg overflow-hidden h-full">
-              <div className="p-4 bg-gray-50 border-b">
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                    <span className="text-sm">Answered</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
-                    <span className="text-sm">Current</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-white border border-gray-300"></div>
-                    <span className="text-sm">Not Answered</span>
-                  </div>
+      <div ref={quizContainerRef} className="bg-slate-100 text-slate-800" style={{ fontFamily: "'Poppins', sans-serif" }}>
+        <div className="min-h-screen flex flex-col">
+          {/* Header with Timer - Only show on desktop */}
+          {!isMobileView && !isReadonly && timeRemaining !== null && (
+            <header className="bg-white shadow-md sticky top-0 z-50">
+              <div className="container mx-auto px-4 py-3 flex justify-between items-center">
+                <h1 className="text-xl font-semibold text-sky-600">Quiz In Progress</h1>
+                <div className="text-lg font-semibold text-slate-700">
+                  Time Remaining: <span className={`font-bold ${timeRemaining <= 60 ? 'text-red-500' : 'text-sky-600'}`}>{timerDisplay}</span>
                 </div>
               </div>
-              
-              <div className="p-4 overflow-y-auto scrollbar-thin h-full" style={{ maxHeight: "calc(100% - 60px)" }}>
-                <div className={`grid gap-2 ${getDynamicGridCols()}`}>
-                  {questions.map((_, index) => (
-                    <button
-                      key={index}
-                      onClick={() => handleQuestionNavigation(index)}
-                      className={`
-                        aspect-square flex items-center justify-center rounded-md font-medium
-                        ${
-                          currentQuestionIndex === index
-                            ? "bg-yellow-400 text-black"
-                            : selectedAnswers[index] !== -1
-                              ? "bg-green-500 text-white"
-                              : "bg-white text-black border border-gray-300"
-                        }
-                        hover:opacity-90 transition-colors
-                        ${getButtonSizeClass()}
-                      `}
+            </header>
+          )}
+
+          <main className="flex-grow container mx-auto px-4 py-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              {/* Question Navigator - Left Side (Desktop) */}
+              {!isMobileView && (
+                <div className="lg:col-span-1 bg-white p-6 rounded-xl shadow-lg">
+                  <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-xl font-semibold">Question Navigator</h2>
+                    <span className="text-sm text-slate-500">{currentQuestionIndex + 1}-{questions.length}</span>
+                  </div>
+                  {/* Legend */}
+                  <div className="flex items-center space-x-4 mb-4 text-sm">
+                    <div className="flex items-center">
+                      <span className="w-3 h-3 bg-green-500 rounded-full mr-1.5"></span> Answered
+                    </div>
+                    <div className="flex items-center">
+                      <span className="w-3 h-3 bg-amber-400 rounded-full mr-1.5"></span> Current
+                    </div>
+                    <div className="flex items-center">
+                      <span className="w-3 h-3 bg-slate-300 rounded-full mr-1.5"></span> Not Answered
+                    </div>
+                  </div>
+                  {/* Question Grid */}
+                  <div className="grid grid-cols-5 sm:grid-cols-7 md:grid-cols-8 lg:grid-cols-5 gap-2 max-h-[calc(100vh-380px)] overflow-y-auto pr-2">
+                    {questions.map((_, index) => {
+                      let bgColor = 'bg-slate-200 hover:bg-slate-300';
+                      let textColor = 'text-slate-700';
+                      if (index === currentQuestionIndex) {
+                        bgColor = 'bg-amber-400 hover:bg-amber-500';
+                        textColor = 'text-white';
+                      } else if (selectedAnswers[index] !== -1) {
+                        bgColor = 'bg-green-500 hover:bg-green-600';
+                        textColor = 'text-white';
+                      }
+                      return (
+                        <button
+                          key={index}
+                          onClick={() => handleQuestionNavigation(index)}
+                          className={`${bgColor} ${textColor} text-sm font-medium py-2 px-1 rounded-md flex items-center justify-center transition-colors`}
+                          disabled={isReadonly}
+                        >
+                          {index + 1}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Question Content - Right Side or Full Width on Mobile */}
+              <div className={`${isMobileView ? 'col-span-1' : 'lg:col-span-2'} bg-white p-6 sm:p-8 rounded-xl shadow-lg`}>
+                {/* Mobile Question Navigator - Top of Content */}
+                {isMobileView && (
+                  <div className="mb-6">
+                    <div className="flex justify-between items-center mb-2">
+                      <h2 className="text-lg font-semibold">Questions</h2>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm text-slate-500">{currentQuestionIndex + 1} / {questions.length}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <button
+                        onClick={handlePrevious}
+                        disabled={currentQuestionIndex === 0}
+                        className="p-2 rounded-md hover:bg-slate-100 disabled:opacity-50"
+                      >
+                        <ChevronLeft className="h-6 w-6 text-slate-600" />
+                      </button>
+                      <div className="flex items-center space-x-2">
+                        {mobileNavigatorIndices.map((index) => {
+                          let bgColor = 'bg-slate-200 hover:bg-slate-300';
+                          let textColor = 'text-slate-700';
+                          if (index === currentQuestionIndex) {
+                            bgColor = 'bg-amber-400 hover:bg-amber-500';
+                            textColor = 'text-white';
+                          } else if (selectedAnswers[index] !== -1) {
+                            bgColor = 'bg-green-500 hover:bg-green-600';
+                            textColor = 'text-white';
+                          }
+                          return (
+                            <button
+                              key={`mobile-nav-${index}`}
+                              onClick={() => handleQuestionNavigation(index)}
+                              className={`${bgColor} ${textColor} text-sm font-medium w-10 h-10 rounded-md flex items-center justify-center transition-colors`}
+                              disabled={isReadonly}
+                            >
+                              {index + 1}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <button
+                        onClick={handleNext}
+                        disabled={currentQuestionIndex === questions.length - 1}
+                        className="p-2 rounded-md hover:bg-slate-100 disabled:opacity-50"
+                      >
+                        <ChevronRight className="h-6 w-6 text-slate-600" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {/* Question Header */}
+                <div className="mb-6">
+                  <div className="flex justify-between items-center mb-2">
+                    <p className="text-sm text-slate-500">Question {currentQuestionIndex + 1} of {questions.length}</p>
+                  </div>
+                  {/* Progress Bar */}
+                  <div className="w-full h-2.5 bg-slate-200 rounded-full overflow-hidden mb-4">
+                    <div 
+                      className="h-full bg-sky-500 transition-all duration-300 ease-in-out"
+                      style={{ width: `${((currentQuestionIndex + 1) / (questions.length || 1)) * 100}%` }}
+                    ></div>
+                  </div>
+                  {/* Question Text - smaller font on mobile */}
+                  <h3 ref={questionContentRef} className={`font-semibold text-slate-800 leading-tight ${isMobileView ? 'text-base' : 'text-xl sm:text-2xl'}`}>
+                    {questions[currentQuestionIndex]?.question}
+                  </h3>
+                </div>
+                {/* Answer Options */}
+                <div className="space-y-4">
+                  {questions[currentQuestionIndex]?.options.map((option, i) => (
+                    <label
+                      key={i}
+                      className={`block p-4 border rounded-lg cursor-pointer transition-all group
+                        ${selectedAnswers[currentQuestionIndex] === i
+                          ? "bg-sky-100 border-sky-500"
+                          : "border-slate-300 hover:border-sky-500 hover:bg-sky-50"
+                        } ${isReadonly ? 'cursor-not-allowed' : ''}`}
+                      onClick={() => !isReadonly && handleAnswerSelect(i)}
                     >
-                      {index + 1}
-                    </button>
+                      <input
+                        type="radio"
+                        name={`question-${currentQuestionIndex}`}
+                        className="sr-only"
+                        value={String.fromCharCode(97 + i)}
+                        checked={selectedAnswers[currentQuestionIndex] === i}
+                        onChange={() => !isReadonly && handleAnswerSelect(i)}
+                        disabled={isReadonly}
+                      />
+                      <div className="flex items-center">
+                        <span className={`w-6 h-6 border-2 rounded-full flex items-center justify-center mr-3 flex-shrink-0
+                          ${selectedAnswers[currentQuestionIndex] === i
+                            ? "border-sky-500"
+                            : "border-slate-400 group-hover:border-sky-500"
+                          }`}
+                        >
+                          {selectedAnswers[currentQuestionIndex] === i && (
+                            <span className="w-3 h-3 bg-sky-500 rounded-full"></span>
+                          )}
+                        </span>
+                        <span className="text-slate-700">{option}</span>
+                      </div>
+                    </label>
                   ))}
                 </div>
-              </div>
-            </div>
-
-            <div className="w-full md:w-2/3 bg-white rounded-xl shadow-lg flex flex-col h-full">
-              <div className="flex-1 p-6 overflow-y-auto" style={{ maxHeight: "calc(100% - 80px)" }}>
-                <div ref={questionContentRef} className="mb-6 question-text">
-                  <p className="text-xl font-medium">{questions[currentQuestionIndex]?.question}</p>
-                </div>
-
-                <div className="space-y-4 options-container">
-                  {questions[currentQuestionIndex]?.options.map((option, index) => (
+                {/* Navigation Buttons - Modified for Last Question Submit */}
+                {!isReadonly && (
+                  <div className="mt-8 flex justify-between items-center">
                     <button
-                      key={index}
-                      onClick={() => !isReadonly && handleAnswerSelect(index)}
-                      className={`w-full text-left p-4 rounded-lg border-2 transition-colors ${
-                        selectedAnswers[currentQuestionIndex] === index
-                          ? "border-green-500 bg-green-50"
-                          : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
-                      } ${isReadonly ? 'opacity-60 cursor-not-allowed' : ''}`}
-                      disabled={isReadonly}
+                      onClick={handlePrevious}
+                      disabled={currentQuestionIndex === 0}
+                      className="bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold py-2.5 px-6 rounded-lg transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {option}
+                      <ChevronLeft className="mr-1 h-5 w-5" />
+                      Previous
                     </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="p-4 border-t bg-white">
-                <div className="flex justify-between gap-4">
-                  <button
-                    onClick={handlePrevious}
-                    disabled={isFirstQuestion}
-                    className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-                  >
-                    Previous
-                  </button>
-                  {!isReadonly && (
-                    isLastQuestion ? (
+                    {currentQuestionIndex === questions.length - 1 ? (
                       <button
                         onClick={handleSubmit}
-                        className="px-6 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600"
+                        className="bg-green-500 hover:bg-green-600 text-white font-semibold py-2.5 px-6 rounded-lg transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        Submit Quiz
+                        Submit
                       </button>
                     ) : (
                       <button
                         onClick={handleNext}
-                        disabled={selectedAnswers[currentQuestionIndex] === -1}
-                        className="px-6 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="bg-sky-600 hover:bg-sky-700 text-white font-semibold py-2.5 px-6 rounded-lg transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         Next
+                        <ChevronRight className="ml-1 h-5 w-5" />
                       </button>
-                    )
-                  )}
-                  {isReadonly && (
-                    !isLastQuestion && (
-                      <button
-                        onClick={handleNext}
-                        className="px-6 py-2 bg-gray-300 text-gray-600 rounded-lg cursor-default"
-                      >
-                        Next
-                      </button>
-                    )
-                  )}
-                </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
-          </div>
+          </main>
         </div>
-
-        <style>{`
-          /* Custom scrollbar */
-          .scrollbar-thin::-webkit-scrollbar { width: 6px; }
-          .scrollbar-thin::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
-          .scrollbar-thin::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 10px; }
-          .scrollbar-thin::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
-          
-          /* Hide horizontal scrollbar in mobile for question nav */
-          @media (max-width: 768px) {
-            .scrollbar-hide-mobile::-webkit-scrollbar { display: none; }
-            .scrollbar-hide-mobile { -ms-overflow-style: none; scrollbar-width: none; }
-          }
-          
-          /* Auto-adjust font size for question based on container */
-          .question-text { transition: font-size 0.2s ease; }
-          
-          /* Option text styling for better readability */
-          .options-container button { transition: all 0.2s ease; line-height: 1.5; }
-          .options-container button:hover { transform: translateY(-1px); box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05); }
-          .options-container button:active { transform: translateY(0); }
-          
-          /* Mobile optimizations */
-          @media (max-width: 768px) {
-            .question-text { font-size: 1rem; }
-            .options-container button { padding: 0.75rem; }
-          }
-        `}</style>
+        {/* Mobile floating timer */}
+        {isMobileView && !isReadonly && timeRemaining !== null && (
+          <div
+            style={{
+              position: 'fixed',
+              top: 10,
+              right: 10,
+              zIndex: 50,
+              background: '#111',
+              color: '#fff',
+              borderRadius: '0.5rem',
+              padding: '0.4rem 1rem',
+              fontWeight: 600,
+              fontSize: '1rem',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+            }}
+          >
+            {timerDisplay}
+          </div>
+        )}
       </div>
     );
   }

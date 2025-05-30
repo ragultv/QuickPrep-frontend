@@ -132,6 +132,8 @@ export const quiz = {
     api.post(`/quiz-sessions/hosted-quiz-sessions/${hostedQuizSessionId}/start`),
   submitHostedAnswers: (data: { quiz_session_id: string; answers: Array<{ question_id: string; selected_option: string }> }) =>
     api.post('/answers/submit-hosted', data),
+  startUserHostedSession: (userHostedQuizSessionId: string) =>
+    api.post(`/quiz-sessions/user-hosted-quiz-sessions/${userHostedQuizSessionId}/start`),
 };
 
 // User stats endpoints
