@@ -424,11 +424,11 @@ export default function SessionDetails() {
                         Not Started
                       </span>
                     )}
-                    {participant.submitted_at ? (
+                    {/* {participant.submitted_at ? (
                       <span className="text-sm font-medium">{participant.score}%</span>
                     ) : (
                       <span className="text-sm text-gray-400">-</span>
-                    )}
+                    )} */}
                   </div>
                 </div>
               </div>

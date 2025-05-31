@@ -142,6 +142,7 @@ export const userStats = {
   getMyStats: () => api.get('/user_stats/my_stats'),
   getHistory: () => api.get('/user_stats/history'),
   getUserStats: (userId: string) => api.get(`/user_stats/${userId}/stats`),
+  getSessionsByDate: () => api.get('/quiz-sessions/sessions-by-date'),
 };
 
 // Resume quiz endpoints
