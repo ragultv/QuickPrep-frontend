@@ -26,6 +26,15 @@ interface JoinSessionResponse {
   message?: string;
 }
 
+interface JoinedSession {
+  id: string;
+  title: string;
+  quiz_session_id: string;
+  parent_hosted_session_id: string;
+  is_live: boolean;
+  joined_at: string;
+}
+
 export default function JoinSession() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const navigate = useNavigate();
@@ -132,6 +141,33 @@ export default function JoinSession() {
         setError('Failed to get participant session details after joining. Please try again.');
         setJoining(false);
         return;
+      }
+
+      // Save joined session information
+      const joinedSession = {
+        id: joinData.participant_quiz_session_id,
+        title: session?.title || 'Untitled Session',
+        quiz_session_id: joinData.participant_quiz_session_id,
+        parent_hosted_session_id: sessionId,
+        is_live: joinData.is_live,
+        joined_at: new Date().toISOString()
+      };
+
+      // Get existing joined sessions
+      const existingSessions = localStorage.getItem('joined_sessions');
+      let joinedSessions: JoinedSession[] = [];
+      if (existingSessions) {
+        try {
+          joinedSessions = JSON.parse(existingSessions);
+        } catch (e) {
+          console.error('Error parsing joined sessions:', e);
+        }
+      }
+
+      // Add new session if it doesn't exist
+      if (!joinedSessions.some((s: JoinedSession) => s.id === joinedSession.id)) {
+        joinedSessions.push(joinedSession);
+        localStorage.setItem('joined_sessions', JSON.stringify(joinedSessions));
       }
 
       setIsParticipant(true);
@@ -289,12 +325,7 @@ export default function JoinSession() {
             ) : (
               <div className="text-center">
                 <div className="flex items-center justify-center space-x-4 mb-4">
-                  <Clock className="w-8 h-8 text-indigo-600 animate-pulse" />
-                  {/* <p className="text-lg text-gray-700">
-                    {isParticipant 
-                      ? "You've joined! Waiting for host to start the session..."
-                      : "Waiting for host to start the session..."}
-                  </p> */}
+
                 </div>
                 <button
                   onClick={handleJoinSession}

@@ -306,7 +306,6 @@ export default function SessionDetails() {
                     </span>
                   </div>
                   <div className="text-xs text-gray-500 space-y-1">
-                    <div>Started: {formatDateTime(participant.started_at)}</div>
                     <div>Completed: {formatDateTime(participant.submitted_at)}</div>
                   </div>
                 </div>
@@ -323,9 +322,6 @@ export default function SessionDetails() {
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Participant
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Started
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Completed
@@ -361,9 +357,6 @@ export default function SessionDetails() {
                           />
                           <span className="text-sm font-medium text-gray-900">{participant.name}</span>
                         </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {formatDateTime(participant.started_at)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {formatDateTime(participant.submitted_at)}
@@ -438,9 +431,6 @@ export default function SessionDetails() {
                     )}
                   </div>
                 </div>
-                <div className="text-xs text-gray-500">
-                  Started: {formatDateTime(participant.started_at)}
-                </div>
               </div>
             ))}
           </div>
@@ -452,9 +442,6 @@ export default function SessionDetails() {
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Participant
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Started
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Status
@@ -480,9 +467,6 @@ export default function SessionDetails() {
                         />
                         <span className="text-sm font-medium text-gray-900">{participant.name}</span>
                       </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {formatDateTime(participant.started_at)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {participant.submitted_at ? (

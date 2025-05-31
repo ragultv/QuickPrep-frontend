@@ -168,13 +168,13 @@ export default function ManageSessions() {
                             )}
                           </button>
                           
-                          <button
+                          {/* <button
                             onClick={() => handleViewQuestions(session.id)}
                             className="p-2 text-gray-500 hover:text-indigo-600 transition-colors rounded-full hover:bg-gray-100"
                             title="View questions"
                           >
                             <Eye className="w-5 h-5" />
-                          </button>
+                          </button> */}
 
                           <button
                             onClick={(e) => {
@@ -183,7 +183,7 @@ export default function ManageSessions() {
                             }}
                             className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm"
                           >
-                            Start Quiz
+                            Start 
                           </button>
                         </>
                       )}
