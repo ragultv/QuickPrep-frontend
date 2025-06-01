@@ -26,6 +26,7 @@ interface SessionDetails {
   current_participants: number
   is_active: boolean
   participants: Participant[]
+  num_questions: number
 }
 
 export default function SessionDetails() {
@@ -302,7 +303,7 @@ export default function SessionDetails() {
                       <span className="text-sm font-medium text-gray-900">{participant.name}</span>
                     </div>
                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                      {participant.score}%
+                      {Math.round((participant.score / session.num_questions) * 100)}%
                     </span>
                   </div>
                   <div className="text-xs text-gray-500 space-y-1">
@@ -363,7 +364,7 @@ export default function SessionDetails() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                          {participant.score}%
+                          {Math.round((participant.score / session.num_questions) * 100)}%
                         </span>
                       </td>
                     </tr>
@@ -485,7 +486,7 @@ export default function SessionDetails() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {participant.submitted_at ? (
-                        <span className="font-medium">{participant.score}%</span>
+                        <span className="font-medium">{Math.round((participant.score / session.num_questions) * 100)}%</span>
                       ) : (
                         <span className="text-gray-400">-</span>
                       )}

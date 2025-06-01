@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Loader2, Sparkles, BrainCircuit, Check, Home } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import {auth, resumeQuiz, promptEnhancer } from '../utils/api';
+import { auth, resumeQuiz, promptEnhancer, quiz } from '../utils/api';
+import SessionLimitMessage from '../components/SessionLimitMessage';
 
 export default function UploadAndGenerateQuiz() {
   const [file, setFile] = useState<File | null>(null);
@@ -14,6 +15,22 @@ export default function UploadAndGenerateQuiz() {
   const [isCompleted, setIsCompleted] = useState(false);
   const isSubmitting = useRef(false);
   const navigate = useNavigate();
+  const [sessionLimit, setSessionLimit] = useState<{
+    limit_reached: boolean;
+    reset_time: string;
+  } | null>(null);
+
+  useEffect(() => {
+    const checkSessionLimit = async () => {
+      try {
+        const response = await quiz.checkResumeSessionLimit();
+        setSessionLimit(response.data);
+      } catch (err) {
+        console.error("Failed to check session limit:", err);
+      }
+    };
+    checkSessionLimit();
+  }, []);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -161,7 +178,11 @@ export default function UploadAndGenerateQuiz() {
           </div>
         ) : (
           <div className="bg-white rounded-xl shadow-lg p-8 transition-all duration-300 transform hover:shadow-xl">
-            <div className="space-y-6">
+            {sessionLimit?.limit_reached && (
+              <SessionLimitMessage resetTime={sessionLimit.reset_time} type="resume" />
+            )}
+
+            <div className={`space-y-6 ${sessionLimit?.limit_reached ? 'blur-sm pointer-events-none' : ''}`}>
               <div className="space-y-3">
                 <div className="relative group">
                   <div></div>
@@ -177,6 +198,7 @@ export default function UploadAndGenerateQuiz() {
                         accept=".pdf,.doc,.docx"
                         onChange={handleFileChange}
                         className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 file:cursor-pointer cursor-pointer"
+                        disabled={sessionLimit?.limit_reached}
                       />
                       {file && (
                         <span className="text-sm text-gray-500 truncate">

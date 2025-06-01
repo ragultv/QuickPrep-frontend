@@ -1,10 +1,11 @@
 "use client"
 
 import type React from "react"
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { Loader2, Sparkles, BrainCircuit, Check, Home, Users, User } from "lucide-react"
 import { auth, quiz, promptEnhancer } from "../utils/api"
+import SessionLimitMessage from "../components/SessionLimitMessage"
 
 export default function CreateQuiz() {
   const [prompt, setPrompt] = useState("")
@@ -22,6 +23,22 @@ export default function CreateQuiz() {
   })
   const [processingProgress, setProcessingProgress] = useState(0)
   const [processingStage, setProcessingStage] = useState("")
+  const [sessionLimit, setSessionLimit] = useState<{
+    limit_reached: boolean;
+    reset_time: string;
+  } | null>(null)
+
+  useEffect(() => {
+    const checkSessionLimit = async () => {
+      try {
+        const response = await quiz.checkSessionLimit()
+        setSessionLimit(response.data)
+      } catch (err) {
+        console.error("Failed to check session limit:", err)
+      }
+    }
+    checkSessionLimit()
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -199,6 +216,10 @@ export default function CreateQuiz() {
           <div
             className={`bg-white rounded-xl shadow-lg p-8 transition-all duration-300 transform hover:shadow-xl ${isLoading ? "relative" : ""}`}
           >
+            {sessionLimit?.limit_reached && (
+              <SessionLimitMessage resetTime={sessionLimit.reset_time} type="general" />
+            )}
+
             {/* Processing Overlay */}
             {isLoading && (
               <div className="absolute inset-0 bg-white/90 backdrop-blur-sm rounded-xl z-10 flex flex-col items-center justify-center">
@@ -251,8 +272,8 @@ export default function CreateQuiz() {
               </div>
             )}
 
-            {/* Form Content - Blurred when loading */}
-            <div className={`transition-all duration-300 ${isLoading ? "blur-sm pointer-events-none" : ""}`}>
+            {/* Form Content - Blurred when loading or limit reached */}
+            <div className={`transition-all duration-300 ${isLoading || sessionLimit?.limit_reached ? "blur-sm pointer-events-none" : ""}`}>
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">

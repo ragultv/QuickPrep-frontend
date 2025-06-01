@@ -134,6 +134,22 @@ export const quiz = {
     api.post('/answers/submit-hosted', data),
   startUserHostedSession: (userHostedQuizSessionId: string) =>
     api.post(`/quiz-sessions/user-hosted-quiz-sessions/${userHostedQuizSessionId}/start`),
+  checkSessionLimit: async () => {
+    const response = await api.get('/questions/check-session-limit', {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+      },
+    });
+    return response;
+  },
+  checkResumeSessionLimit: async () => {
+    const response = await api.get('/quiz-resume/check-session-limit', {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+      },
+    });
+    return response;
+  },
 };
 
 // User stats endpoints
@@ -143,6 +159,7 @@ export const userStats = {
   getHistory: () => api.get('/user_stats/history'),
   getUserStats: (userId: string) => api.get(`/user_stats/${userId}/stats`),
   getSessionsByDate: () => api.get('/quiz-sessions/sessions-by-date'),
+  getNoOfSessionsToday: () => api.get('/quiz-sessions/no-of-sessions-today'),
 };
 
 // Resume quiz endpoints
