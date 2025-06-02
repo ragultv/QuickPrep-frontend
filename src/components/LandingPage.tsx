@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { Menu, X, BookOpen, LayoutDashboard, Check, BarChart2, FileText, Users, Zap, Settings, Sparkles, Mail, Phone, MapPin, Twitter, Facebook, Linkedin } from 'lucide-react';
+import  { useState, useEffect } from 'react';
+import { Menu, X,  LayoutDashboard, Check, BarChart2, FileText, Users, Zap, Settings, Sparkles, Mail, Phone, MapPin, Twitter, Facebook, Linkedin } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 function LandingPage() {
+  const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
@@ -122,7 +124,8 @@ function LandingPage() {
                 ))}
               </nav>
               
-              <button className="hidden md:block relative overflow-hidden bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-8 rounded-lg transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-indigo-500/25 group">
+              <button className="hidden md:block relative overflow-hidden bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-8 rounded-lg transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-indigo-500/25 group"
+                      onClick={() => navigate('/login')}>
                 <span className="relative z-10">Sign in</span>
                 <div className="absolute inset-0 bg-indigo-700 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"></div>
               </button>
@@ -181,7 +184,8 @@ function LandingPage() {
                 </span> to prepare for your next role.
               </p>
               
-              <button className="relative group bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-6 px-12 rounded-full text-xl transition-all duration-500 animate-fadeIn animation-delay-400 hover:scale-110 hover:shadow-2xl hover:shadow-indigo-500/30">
+              <button className="relative group bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-6 px-12 rounded-full text-xl transition-all duration-500 animate-fadeIn animation-delay-400 hover:scale-110 hover:shadow-2xl hover:shadow-indigo-500/30"
+                      onClick={() => navigate('/register')}>
                 <span className="relative z-10">Start Creating Now</span>
                 <div className="absolute inset-0 bg-indigo-700 rounded-full transform scale-0 group-hover:scale-100 transition-transform duration-300"></div>
                 <div className="absolute -inset-1 bg-indigo-400 rounded-full opacity-0 group-hover:opacity-20 transition-opacity duration-300 animate-ping"></div>
@@ -310,7 +314,8 @@ function LandingPage() {
                 Join thousands of users who are already using QuickPREP to create better quizzes, faster.
               </p>
               
-              <button className="relative group bg-white text-indigo-600 hover:bg-indigo-50 font-semibold py-6 px-12 rounded-full text-xl transition-all duration-500 animate-fadeIn animation-delay-400 hover:scale-110 hover:shadow-2xl">
+              <button className="relative group bg-white text-indigo-600 hover:bg-indigo-50 font-semibold py-6 px-12 rounded-full text-xl transition-all duration-500 animate-fadeIn animation-delay-400 hover:scale-110 hover:shadow-2xl"
+                      onClick={() => navigate('/register')}>
                 <span className="relative z-10">Try QuickPREP FREE</span>
                 <div className="absolute inset-0 bg-indigo-100 rounded-full transform scale-0 group-hover:scale-100 transition-transform duration-300"></div>
                 <div className="absolute -inset-1 bg-white/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 animate-ping"></div>
