@@ -19,6 +19,8 @@ export default function UploadAndGenerateQuiz() {
     limit_reached: boolean;
     reset_time: string;
   } | null>(null);
+  const [processingProgress, setProcessingProgress] = useState(0);
+  const [processingStage, setProcessingStage] = useState("");
 
   useEffect(() => {
     const checkSessionLimit = async () => {
@@ -109,14 +111,31 @@ export default function UploadAndGenerateQuiz() {
 
     setIsGenerating(true);
     setError('');
+    setProcessingProgress(0);
+    setProcessingStage("Initializing...");
+
+    // Simulate progress updates
+    const updateProgress = (progress: number, stage: string) => {
+      setProcessingProgress(progress);
+      setProcessingStage(stage);
+    };
 
     try {
+      updateProgress(25, "Analyzing your resume...");
+      await new Promise((resolve) => setTimeout(resolve, 800));
+
+      updateProgress(50, "Generating questions with AI...");
       const response = await resumeQuiz.generateFromResume({
         resume_id: resumeId,
         user_prompt: prompt.trim()
       });
 
+      updateProgress(75, "Processing questions...");
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
       if (response.data.session_id) {
+        updateProgress(100, "Quiz created successfully!");
+        await new Promise((resolve) => setTimeout(resolve, 500));
         setIsCompleted(true);
       } else {
         setError('Failed to create quiz session.');
@@ -126,6 +145,8 @@ export default function UploadAndGenerateQuiz() {
     } finally {
       isSubmitting.current = false;
       setIsGenerating(false);
+      setProcessingProgress(0);
+      setProcessingStage("");
     }
   };
 
@@ -139,10 +160,7 @@ export default function UploadAndGenerateQuiz() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 py-12 px-4 sm:px-6">
       <div className="max-w-2xl mx-auto">
-        <h1 className="text-3xl font-bold text-gray-900 mb-3 text-center sm:text-left"></h1>
-        <p className="text-gray-600 mb-8 text-center sm:text-left">
-          Upload your resume and let AI create personalized questions
-        </p>
+
         
         {isCompleted ? (
           <div className="bg-white rounded-xl shadow-lg p-8 text-center animate-slideUp">
@@ -177,12 +195,59 @@ export default function UploadAndGenerateQuiz() {
             </div>
           </div>
         ) : (
-          <div className="bg-white rounded-xl shadow-lg p-8 transition-all duration-300 transform hover:shadow-xl">
+          <div className={`bg-white rounded-xl shadow-lg p-8 transition-all duration-300 transform hover:shadow-xl ${isGenerating ? "relative" : ""}`}>
             {sessionLimit?.limit_reached && (
               <SessionLimitMessage resetTime={sessionLimit.reset_time} type="resume" />
             )}
 
-            <div className={`space-y-6 ${sessionLimit?.limit_reached ? 'blur-sm pointer-events-none' : ''}`}>
+            {/* Processing Overlay */}
+            {isGenerating && (
+              <div className="absolute inset-0 bg-white/90 backdrop-blur-sm rounded-xl z-10 flex flex-col items-center justify-center">
+                <div className="text-center space-y-6">
+                  {/* Circular Progress */}
+                  <div className="relative w-24 h-24 mx-auto">
+                    <svg className="w-24 h-24 transform -rotate-90" viewBox="0 0 100 100">
+                      {/* Background circle */}
+                      <circle cx="50" cy="50" r="40" stroke="#e5e7eb" strokeWidth="8" fill="none" />
+                      {/* Progress circle */}
+                      <circle
+                        cx="50"
+                        cy="50"
+                        r="40"
+                        stroke="url(#gradient)"
+                        strokeWidth="8"
+                        fill="none"
+                        strokeLinecap="round"
+                        strokeDasharray={`${2 * Math.PI * 40}`}
+                        strokeDashoffset={`${2 * Math.PI * 40 * (1 - processingProgress / 100)}`}
+                        className="transition-all duration-500 ease-out"
+                      />
+                      {/* Gradient definition */}
+                      <defs>
+                        <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                          <stop offset="0%" stopColor="#6366f1" />
+                          <stop offset="100%" stopColor="#8b5cf6" />
+                        </linearGradient>
+                      </defs>
+                    </svg>
+                    {/* Percentage text */}
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className="text-xl font-bold text-gray-800">{processingProgress}%</span>
+                    </div>
+                  </div>
+
+                  {/* Processing Message */}
+                  <div className="space-y-2">
+                    <p className="text-lg font-semibold text-gray-800">{processingStage}</p>
+                    <p className="text-sm text-gray-600 max-w-md">
+                      Our AI is working hard to generate the perfect questions for you.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className={`space-y-6 ${sessionLimit?.limit_reached || isGenerating ? 'blur-sm pointer-events-none' : ''}`}>
               <div className="space-y-3">
                 <div className="relative group">
                   <div></div>

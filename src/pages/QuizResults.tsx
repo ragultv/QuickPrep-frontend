@@ -194,7 +194,7 @@ export default function QuizResults() {
 
         <div className="mt-8 flex justify-between gap-4">
           <button
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/dashboard')}
             className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
           >
             Back to Dashboard

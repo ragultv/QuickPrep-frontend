@@ -41,12 +41,16 @@ export default function QuizResultPage() {
           console.error('❌ Failed to refresh token', err);
           console.log('❌ Token expired, clearing localStorage');
           localStorage.clear();
-          navigate('/login');
+          if (sessionId) {
+            navigate('/dashboard', { replace: true });
+          } else {
+            navigate('/login');
+          }
         }
       }
     };
     checkToken();
-  }, [navigate]);
+  }, [navigate, sessionId]);
 
   useEffect(() => {
     const fetchResults = async () => {
@@ -176,7 +180,7 @@ export default function QuizResultPage() {
         </div>
 
         <button
-          onClick={() => navigate('/')}
+          onClick={() => navigate('/dashboard')}
           className="mt-6 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
         >
           Back to Dashboard

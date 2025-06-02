@@ -23,7 +23,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   // Route configuration with titles
   const routes = [
-    { path: '/', title: 'Dashboard' },
+    { path: '/dashboard', title: 'Dashboard' },
     { path: '/quiz/create', title: 'Create Quiz' },
     { path: '/create-quiz-resume', title: 'Quiz by Resume' },
     { path: '/my-sessions', title: 'My Sessions' },
@@ -82,7 +82,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
         <nav className="mt-4 px-2">
           <div className="space-y-1">
-            <NavLink to="/" icon={<LayoutDashboard className="h-5 w-5 mr-3" />} label="Dashboard" currentPath={location.pathname} />
+            <NavLink to="/dashboard" icon={<LayoutDashboard className="h-5 w-5 mr-3" />} label="Dashboard" currentPath={location.pathname} />
             <NavLink to="/quiz/create" icon={<BookPlus className="h-5 w-5 mr-3" />} label="Create Quiz" currentPath={location.pathname} />
             <NavLink to="/create-quiz-resume" icon={<FileSpreadsheet className="h-5 w-5 mr-3" />} label="Quiz by Resume" currentPath={location.pathname} />
             <NavLink to="/my-sessions" icon={<Calendar className="h-5 w-5 mr-3" />} label="My Sessions" currentPath={location.pathname} />

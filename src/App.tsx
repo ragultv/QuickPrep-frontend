@@ -20,7 +20,7 @@ import SessionDetails from './pages/SessionDetails';
 import UserProfile from './pages/UserProfile';
 import Settings from './pages/Settings';
 import HostedQuiz from './pages/HostedQuiz';
-
+import LandingPage from './components/LandingPage';
 import { auth } from './utils/api';
 
 interface ProtectedRouteProps {
@@ -97,23 +97,17 @@ function App() {
   return (
     <Router>
       <Routes>
-        {/* Public Routes */}
-        <Route
-          path="/login"
+        {/* Landing Page - Default Route */}
+        <Route 
+          path="/"
           element={
-            localStorage.getItem('access_token') 
-              ? <Navigate to="/" replace /> 
-              : <LoginForm />
+            isLoggedIn ? <Navigate to="/dashboard" replace /> : <LandingPage />
           }
         />
+
+        {/* Dashboard Route */}
         <Route
-          path="/register"
-          element={isLoggedIn ? <Navigate to="/" replace /> : <RegisterForm />}
-        />     
-        
-        {/* Protected Routes */}
-        <Route
-          path="/"
+          path="/dashboard"
           element={
             <ProtectedRoute>
               <Layout>
@@ -122,6 +116,20 @@ function App() {
             </ProtectedRoute>
           }
         />
+
+        {/* Public Routes */}
+        <Route
+          path="/login"
+          element={
+            isLoggedIn ? <Navigate to="/dashboard" replace /> : <LoginForm />
+          }
+        />
+        <Route
+          path="/register"
+          element={isLoggedIn ? <Navigate to="/dashboard" replace /> : <RegisterForm />}
+        />     
+        
+        {/* Protected Routes */}
         <Route
           path="/quiz/create"
           element={
@@ -261,11 +269,10 @@ function App() {
           }
         />
 
-
-        {/* Catch all route - redirect to login if not authenticated, dashboard if authenticated */}
+        {/* Catch all route - redirect to landing page if not authenticated, dashboard if authenticated */}
         <Route
           path="*"
-          element={isLoggedIn ? <Navigate to="/" replace /> : <Navigate to="/login" replace />}
+          element={isLoggedIn ? <Navigate to="/dashboard" replace /> : <Navigate to="/" replace />}
         />
       </Routes>
     </Router>

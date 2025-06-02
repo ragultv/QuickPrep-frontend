@@ -24,8 +24,8 @@ export default function CreateQuiz() {
   const [processingProgress, setProcessingProgress] = useState(0)
   const [processingStage, setProcessingStage] = useState("")
   const [sessionLimit, setSessionLimit] = useState<{
-    limit_reached: boolean;
-    reset_time: string;
+    limit_reached: boolean
+    reset_time: string
   } | null>(null)
 
   useEffect(() => {
@@ -179,8 +179,6 @@ export default function CreateQuiz() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 py-12 px-4 sm:px-6">
       <div className="max-w-2xl mx-auto">
-        <h1 className="text-3xl font-bold text-gray-900 mb-3 text-center sm:text-left"></h1>
-        <p className="text-gray-600 mb-8 text-center sm:text-left">Design your perfect quiz with AI assistance</p>
 
         {isCompleted ? (
           <div className="bg-white rounded-xl shadow-lg p-8 text-center animate-slideUp">
@@ -202,7 +200,7 @@ export default function CreateQuiz() {
               </p>
 
               <button
-                onClick={() => navigate("/")}
+                onClick={() => navigate('/dashboard')}
                 className="inline-flex items-center px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
               >
                 <Home className="w-5 h-5 mr-2" />
@@ -216,64 +214,59 @@ export default function CreateQuiz() {
           <div
             className={`bg-white rounded-xl shadow-lg p-8 transition-all duration-300 transform hover:shadow-xl ${isLoading ? "relative" : ""}`}
           >
-            {sessionLimit?.limit_reached && (
-              <SessionLimitMessage resetTime={sessionLimit.reset_time} type="general" />
-            )}
+            {sessionLimit?.limit_reached && <SessionLimitMessage resetTime={sessionLimit.reset_time} type="general" />}
 
             {/* Processing Overlay */}
             {isLoading && (
               <div className="absolute inset-0 bg-white/90 backdrop-blur-sm rounded-xl z-10 flex flex-col items-center justify-center">
                 <div className="text-center space-y-6">
-                  {/* Animated Logo */}
-                  <div className="relative">
-                    <div className="w-20 h-20 mx-auto bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center animate-pulse">
-                      <BrainCircuit className="w-10 h-10 text-white" />
-                    </div>
-                    <div className="absolute -inset-2 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full opacity-20 animate-ping"></div>
-                  </div>
-
-                  {/* Progress Bar */}
-                  <div className="w-80 max-w-full">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-sm font-medium text-gray-700">{processingStage}</span>
-                      <span className="text-sm font-medium text-indigo-600">{processingProgress}%</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-                      <div
-                        className="h-full bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full transition-all duration-500 ease-out relative"
-                        style={{ width: `${processingProgress}%` }}
-                      >
-                        <div className="absolute inset-0 bg-white/30 animate-pulse"></div>
-                      </div>
+                  {/* Circular Progress */}
+                  <div className="relative w-24 h-24 mx-auto">
+                    <svg className="w-24 h-24 transform -rotate-90" viewBox="0 0 100 100">
+                      {/* Background circle */}
+                      <circle cx="50" cy="50" r="40" stroke="#e5e7eb" strokeWidth="8" fill="none" />
+                      {/* Progress circle */}
+                      <circle
+                        cx="50"
+                        cy="50"
+                        r="40"
+                        stroke="url(#gradient)"
+                        strokeWidth="8"
+                        fill="none"
+                        strokeLinecap="round"
+                        strokeDasharray={`${2 * Math.PI * 40}`}
+                        strokeDashoffset={`${2 * Math.PI * 40 * (1 - processingProgress / 100)}`}
+                        className="transition-all duration-500 ease-out"
+                      />
+                      {/* Gradient definition */}
+                      <defs>
+                        <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                          <stop offset="0%" stopColor="#6366f1" />
+                          <stop offset="100%" stopColor="#8b5cf6" />
+                        </linearGradient>
+                      </defs>
+                    </svg>
+                    {/* Percentage text */}
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className="text-xl font-bold text-gray-800">{processingProgress}%</span>
                     </div>
                   </div>
 
                   {/* Processing Message */}
                   <div className="space-y-2">
-                    <p className="text-lg font-semibold text-gray-800">Creating Your Quiz</p>
+                    <p className="text-lg font-semibold text-gray-800">{processingStage}</p>
                     <p className="text-sm text-gray-600 max-w-md">
-                      Our AI is working hard to generate the perfect questions for you. This may take a few moments.
+                      Our AI is working hard to generate the perfect questions for you.
                     </p>
-                  </div>
-
-                  {/* Animated Dots */}
-                  <div className="flex space-x-1">
-                    <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce"></div>
-                    <div
-                      className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce"
-                      style={{ animationDelay: "0.1s" }}
-                    ></div>
-                    <div
-                      className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce"
-                      style={{ animationDelay: "0.2s" }}
-                    ></div>
                   </div>
                 </div>
               </div>
             )}
 
             {/* Form Content - Blurred when loading or limit reached */}
-            <div className={`transition-all duration-300 ${isLoading || sessionLimit?.limit_reached ? "blur-sm pointer-events-none" : ""}`}>
+            <div
+              className={`transition-all duration-300 ${isLoading || (sessionLimit?.limit_reached === true) ? "blur-sm pointer-events-none" : ""}`}
+            >
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">

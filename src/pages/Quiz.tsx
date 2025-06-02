@@ -559,7 +559,7 @@ export default function Quiz() {
           if (isFullScreen) {
             exitFullScreen();
           }
-          navigate('/');
+          navigate('/dashboard');
         }
       }
     };

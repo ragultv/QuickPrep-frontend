@@ -40,7 +40,7 @@ export default function AuthRedirect() {
   }
 
   if (isAuthenticated) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/dashboard" replace />;
   }
 
   return <Navigate to="/login" state={{ from: location }} replace />;
