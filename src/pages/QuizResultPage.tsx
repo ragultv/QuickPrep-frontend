@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { CheckCircle, XCircle } from "lucide-react";
-import { auth,quiz } from "../utils/api";
+import { CheckCircle, XCircle, Trophy, ArrowLeft, PlusCircle, Brain } from "lucide-react";
+import { auth, quiz } from "../utils/api";
 
 interface QuestionResult {
   question_id: string;
@@ -70,121 +70,170 @@ export default function QuizResultPage() {
 
   useEffect(() => {
     const handlePopState = (e: PopStateEvent) => {
-      // Always push to dashboard if user tries to go back
       navigate('/', { replace: true });
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, [navigate]);
 
-  if (loading) return <p className="text-center p-6">Loading results…</p>;
-  if (error)   return <p className="text-center text-red-500">{error}</p>;
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <p className="text-lg text-gray-600">Loading results...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="text-center">
+          <Brain className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+          <p className="text-red-500">{error}</p>
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="mt-4 px-6 py-3 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 transition-colors duration-200 flex items-center gap-2 mx-auto"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            Back to Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (!result) return null;
 
   const { questions, score, total_questions } = result;
   const percent = Math.round((score / total_questions) * 100);
 
-  return (
-    <div className="max-w-3xl mx-auto p-4">
-      <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
-        <h1 className="text-2xl font-bold mb-4">Quiz Results</h1>
-        <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg mb-6">
-          <div>
-            <p className="text-lg font-semibold">Your Score</p>
-            <p className="text-gray-600">
-              {score} of {total_questions} correct
-            </p>
-          </div>
-          <p className="text-3xl font-bold text-indigo-600">{percent}%</p>
-        </div>
+  const getScoreMessage = (percent: number) => {
+    if (percent >= 80) return 'Excellent!';
+    if (percent >= 60) return 'Good job!';
+    if (percent >= 40) return 'Keep practicing!';
+    return 'Need improvement';
+  };
 
-        <div className="space-y-6">
-          {questions.map((q, i) => {
-            const isCorrect = q.is_correct;
-            return (
+  return (
+    <div className="min-h-screen bg-gray-50 py-4 sm:py-8 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-4xl mx-auto">
+        <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+          {/* Score Header */}
+          <div className="bg-gradient-to-r from-indigo-500 to-purple-600 p-6 sm:p-8 text-white">
+            <div className="flex items-center justify-between">
+              <h1 className="text-2xl sm:text-3xl font-bold">Quiz Results</h1>
+              <Trophy className="w-6 h-6 sm:w-8 sm:h-8" />
+            </div>
+            <div className="mt-4 sm:mt-6 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 sm:gap-0">
+              <div>
+                <p className="text-base sm:text-lg opacity-90">Your Score</p>
+                <p className="text-4xl sm:text-5xl font-bold mt-1 sm:mt-2">{percent}%</p>
+                <p className="mt-1 sm:mt-2 text-base sm:text-lg opacity-90">
+                  {score} out of {total_questions} correct
+                </p>
+              </div>
+              <p className="text-xl sm:text-2xl font-semibold">{getScoreMessage(percent)}</p>
+            </div>
+          </div>
+
+          {/* Questions Review */}
+          <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+            {questions.map((q, i) => (
               <div
                 key={q.question_id}
-                className={`p-4 rounded-lg border ${
-                  isCorrect ? "border-green-200 bg-green-50" : "border-red-200 bg-red-50"
-                }`}
+                className="bg-white rounded-xl border shadow-sm overflow-hidden"
               >
-                <div className="flex items-center gap-2 mb-2">
-                  {isCorrect ? (
-                    <>
-                      <CheckCircle className="h-5 w-5 text-green-600" />
-                      <span className="text-green-700 font-medium">Correct</span>
-                    </>
-                  ) : (
-                    <>
-                      <XCircle className="h-5 w-5 text-red-600" />
-                      <span className="text-red-700 font-medium">Incorrect</span>
-                    </>
+                <div className={`p-3 sm:p-4 ${q.is_correct ? 'bg-emerald-50' : 'bg-red-50'}`}>
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    {q.is_correct ? (
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-700" />
+                        <span className="font-medium text-emerald-700">Correct</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <XCircle className="h-5 w-5 sm:h-6 sm:w-6 text-red-700" />
+                        <span className="font-medium text-red-700">Incorrect</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="p-3 sm:p-4">
+                  <p className="text-base sm:text-lg font-medium text-gray-900 mb-3 sm:mb-4">
+                    Question {i + 1}: {q.question}
+                  </p>
+                  <div className="space-y-2 sm:space-y-3">
+                    {q.options.map((opt, idx) => {
+                      const letter = String.fromCharCode(65 + idx);
+                      const isUserAnswer = letter === q.selected_option;
+                      const isCorrectAnswer = letter === q.correct_answer;
+
+                      return (
+                        <div
+                          key={idx}
+                          className={`p-2 sm:p-3 rounded-lg transition-colors duration-200 ${
+                            isCorrectAnswer
+                              ? 'bg-emerald-50 border border-emerald-200'
+                              : isUserAnswer && !q.is_correct
+                              ? 'bg-red-50 border border-red-200'
+                              : 'hover:bg-gray-50 border border-gray-200'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className={`text-sm sm:text-base ${
+                              isCorrectAnswer
+                                ? 'text-emerald-700'
+                                : isUserAnswer && !q.is_correct
+                                ? 'text-red-700'
+                                : 'text-gray-700'
+                            }`}>
+                              {letter}. {opt}
+                            </span>
+                            {(isCorrectAnswer || (isUserAnswer && !q.is_correct)) && (
+                              <span className={`text-xs sm:text-sm font-medium ${
+                                isCorrectAnswer ? 'text-emerald-600' : 'text-red-600'
+                              }`}>
+                                {isCorrectAnswer ? 'Correct Answer' : 'Your Answer'}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {!q.is_correct && q.explanation && (
+                    <div className="mt-3 sm:mt-4 p-3 sm:p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                      <p className="text-xs sm:text-sm font-medium text-amber-900 mb-1">Explanation:</p>
+                      <p className="text-xs sm:text-sm text-amber-800">{q.explanation}</p>
+                    </div>
                   )}
                 </div>
-
-                <p className="text-gray-800 font-medium mb-2">
-                  Question {i + 1}: {q.question}
-                </p>
-
-                <div className="space-y-1 text-sm">
-                  {q.options.map((opt, idx) => {
-                    const letter = String.fromCharCode(65 + idx);
-                    const isUser  = letter === q.selected_option;
-                    const isCorrectAnswer = letter === q.correct_answer;
-                    return (
-                      <div
-                        key={idx}
-                        className={`p-2 rounded flex justify-between ${
-                          isCorrectAnswer
-                            ? "bg-green-100 border border-green-200"
-                            : isUser && !isCorrect
-                            ? "bg-red-100 border border-red-200"
-                            : "bg-white border border-gray-200"
-                        }`}
-                      >
-                        <span
-                          className={
-                            isCorrectAnswer
-                              ? "text-green-700"
-                              : isUser && !isCorrect
-                              ? "text-red-700"
-                              : "text-gray-700"
-                          }
-                        >
-                          {letter}. {opt}
-                        </span>
-                        {isCorrectAnswer && (
-                          <span className="text-sm text-green-600 font-medium">
-                            Correct Answer
-                          </span>
-                        )}
-                        {isUser && !isCorrect && (
-                          <span className="text-sm text-red-600 font-medium">
-                            Your Answer
-                          </span>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {!isCorrect && q.explanation && (
-                  <div className="mt-3 p-3 bg-white border border-gray-200 rounded">
-                    <p className="text-sm font-medium text-gray-900">Explanation:</p>
-                    <p className="text-sm text-gray-700">{q.explanation}</p>
-                  </div>
-                )}
               </div>
-            );
-          })}
-        </div>
+            ))}
+          </div>
 
-        <button
-          onClick={() => navigate('/dashboard')}
-          className="mt-6 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
-        >
-          Back to Dashboard
-        </button>
+          {/* Action Buttons */}
+          <div className="p-4 sm:p-6 bg-gray-50 border-t">
+            <div className="flex flex-col sm:flex-row justify-between gap-3 sm:gap-4">
+              <button
+                onClick={() => navigate('/dashboard')}
+                className="px-4 sm:px-6 py-2.5 sm:py-3 flex items-center justify-center gap-2 text-gray-700 bg-white border border-gray-300 rounded-full hover:bg-gray-50 transition-colors duration-200 w-full sm:w-auto"
+              >
+                <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
+                Back to Dashboard
+              </button>
+              <button
+                onClick={() => navigate('/quiz/create')}
+                className="px-4 sm:px-6 py-2.5 sm:py-3 flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-full hover:from-indigo-700 hover:to-purple-700 transition-colors duration-200 w-full sm:w-auto"
+              >
+                <PlusCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+                Create New Quiz
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
