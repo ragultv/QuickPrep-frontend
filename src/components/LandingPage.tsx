@@ -190,6 +190,19 @@ function LandingPage() {
                 <div className="absolute inset-0 bg-indigo-700 rounded-full transform scale-0 group-hover:scale-100 transition-transform duration-300"></div>
                 <div className="absolute -inset-1 bg-indigo-400 rounded-full opacity-0 group-hover:opacity-20 transition-opacity duration-300 animate-ping"></div>
               </button>
+              {/* <div>
+                <div className="space-y-4 mb-8">
+                <h2 className="text-4xl md:text-7xl font-bold bg-gradient-to-br from-purple-500 via-purple-400 to-indigo-600 text-transparent bg-clip-text animate-slideUp">
+                  Fast.
+                </h2>
+                <h2 className="text-4xl md:text-7xl font-bold bg-gradient-to-br from-purple-400 via-purple-500 to-indigo-500 text-transparent bg-clip-text animate-slideUp animation-delay-100">
+                  Accurate.
+                </h2>
+                <h2 className="text-4xl md:text-7xl font-bold bg-gradient-to-br from-purple-300 to-indigo-400 text-transparent bg-clip-text animate-slideUp animation-delay-200">
+                  Customizable.
+                </h2>
+              </div>
+            </div> */}
             </div>
           </div>
 
@@ -348,7 +361,7 @@ function LandingPage() {
                 </div>
               </div>
               
-              <div>
+              {/* <div>
                 <h3 className="text-xl font-semibold mb-6 text-white">
                   Quick Links
                 </h3>
@@ -363,7 +376,7 @@ function LandingPage() {
                     </li>
                   ))}
                 </ul>
-              </div>
+              </div> */}
               
               <div>
                 <h3 className="text-xl font-semibold mb-6 text-white">

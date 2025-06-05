@@ -28,7 +28,7 @@ export default function ChangePassword() {
         old_password: oldPassword,
         new_password: newPassword
       });
-      navigate('/profile', { state: { message: 'Password changed successfully!' } });
+      navigate('/settings', { state: { message: 'Password changed successfully!' } });
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to change password');
       setIsLoading(false);
@@ -39,9 +39,9 @@ export default function ChangePassword() {
     <div className="max-w-2xl mx-auto">
       <div className="bg-white rounded-xl shadow-lg overflow-hidden p-6 sm:p-8">
         <div className="mb-6 flex items-center">
-          <Link to="/profile" className="flex items-center text-gray-600 hover:text-indigo-600">
+          <Link to="/settings" className="flex items-center text-gray-600 hover:text-indigo-600">
             <ArrowLeft className="h-5 w-5 mr-2" />
-            Back to Profile
+            Back
           </Link>
         </div>
         

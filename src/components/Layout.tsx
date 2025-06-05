@@ -67,10 +67,15 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         }`}
       >
         <div className="flex items-center justify-between p-4 border-b border-gray-700">
-          <div className="flex items-center space-x-2">
-            <LayoutDashboard className="h-6 w-6 text-indigo-400" />
-            <span className="text-xl font-semibold text-white">QuickPrep</span>
-          </div>
+            <div className="flex items-center group">
+              <div className="relative">
+                <LayoutDashboard className="h-8 w-8 text-indigo-600 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-12" />
+                <div className="absolute inset-0 bg-indigo-400 opacity-0 blur-lg group-hover:opacity-30 transition-opacity duration-300 rounded-full"></div>
+              </div>
+              <span className="ml-3 text-2xl font-bold text-white">
+                Quick<span className="text-indigo-600">PREP</span>
+              </span>
+            </div>
           <button
             onClick={() => setIsSidebarOpen(false)}
             className="lg:hidden text-gray-400 hover:text-white transition-colors duration-200"
