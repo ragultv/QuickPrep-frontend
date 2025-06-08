@@ -35,14 +35,22 @@ export default function CreateQuiz() {
   useEffect(() => {
     const checkSessionLimits = async () => {
       try {
+        console.log('Checking session limits...');
         const [personalResponse, hostResponse] = await Promise.all([
           quiz.checkSessionLimit(),
           quiz.checkHostSessionLimit()
-        ])
+        ]);
+        console.log('Personal session limit response:', personalResponse);
+        console.log('Host session limit response:', hostResponse);
         setPersonalSessionLimit(personalResponse.data)
         setHostSessionLimit(hostResponse.data)
-      } catch (err) {
-        console.error("Failed to check session limits:", err)
+      } catch (err: any) {
+        console.error("Failed to check session limits:", err);
+        console.error("Error details:", {
+          message: err.message,
+          response: err.response,
+          request: err.request
+        });
       }
     }
     checkSessionLimits()
@@ -278,7 +286,7 @@ export default function CreateQuiz() {
 
             {/* Form Content - Blurred when loading or limit reached */}
             <div
-              className={`transition-all duration-300 ${isLoading || (personalSessionLimit?.limit_reached === true || hostSessionLimit?.limit_reached === true) ? "blur-sm pointer-events-none" : ""}`}
+              className={`transition-all duration-300 ${isLoading || (personalSessionLimit?.limit_reached && hostSessionLimit?.limit_reached) ? "blur-sm pointer-events-none" : ""}`}
             >
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="space-y-3">
@@ -302,7 +310,7 @@ export default function CreateQuiz() {
                         placeholder="e.g., '20 advanced Python MCQs' or 'Create a quiz about JavaScript promises'"
                         value={prompt}
                         onChange={(e) => setPrompt(e.target.value)}
-                        disabled={isEnhancing || isLoading}
+                        disabled={isEnhancing || isLoading || (personalSessionLimit?.limit_reached && hostSessionLimit?.limit_reached)}
                         required
                       />
 
@@ -310,10 +318,10 @@ export default function CreateQuiz() {
                         <button
                           type="button"
                           onClick={enhancePrompt}
-                          disabled={isEnhancing || !prompt.trim() || isLoading}
+                          disabled={isEnhancing || !prompt.trim() || isLoading || (personalSessionLimit?.limit_reached && hostSessionLimit?.limit_reached)}
                           className={`flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-700 rounded-md
                   border border-indigo-100 hover:bg-indigo-100 transition-all duration-200
-                  ${isEnhancing || !prompt.trim() || isLoading ? "opacity-50 cursor-not-allowed" : "shadow-sm hover:shadow"}`}
+                  ${isEnhancing || !prompt.trim() || isLoading || (personalSessionLimit?.limit_reached && hostSessionLimit?.limit_reached) ? "opacity-50 cursor-not-allowed" : "shadow-sm hover:shadow"}`}
                           title="Enhance prompt with AI"
                         >
                           {isEnhancing ? (
@@ -456,7 +464,7 @@ export default function CreateQuiz() {
                         onChange={(e) => setHostSettings((prev) => ({ ...prev, title: e.target.value }))}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                         placeholder="Enter a title for your quiz session"
-                        disabled={isLoading}
+                        disabled={isLoading || hostSessionLimit?.limit_reached}
                         required
                       />
                     </div>
@@ -471,7 +479,7 @@ export default function CreateQuiz() {
                         min="1"
                         max="50"
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        disabled={isLoading}
+                        disabled={isLoading || hostSessionLimit?.limit_reached}
                       />
                     </div>
                     <div>
@@ -488,7 +496,7 @@ export default function CreateQuiz() {
                         min="5"
                         max="180"
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        disabled={isLoading}
+                        disabled={isLoading || hostSessionLimit?.limit_reached}
                       />
                     </div>
                   </div>
@@ -496,7 +504,7 @@ export default function CreateQuiz() {
 
                 <button
                   type="submit"
-                  disabled={isLoading || isEnhancing || !isFormValid}
+                  disabled={isLoading || isEnhancing || !isFormValid || (personalSessionLimit?.limit_reached && hostSessionLimit?.limit_reached)}
                   className="w-full flex items-center justify-center px-6 py-3 border border-transparent rounded-lg text-base font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm hover:shadow transform hover:-translate-y-0.5"
                 >
                   {isLoading ? (
