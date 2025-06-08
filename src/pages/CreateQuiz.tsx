@@ -23,21 +23,29 @@ export default function CreateQuiz() {
   })
   const [processingProgress, setProcessingProgress] = useState(0)
   const [processingStage, setProcessingStage] = useState("")
-  const [sessionLimit, setSessionLimit] = useState<{
+  const [personalSessionLimit, setPersonalSessionLimit] = useState<{
+    limit_reached: boolean
+    reset_time: string
+  } | null>(null)
+  const [hostSessionLimit, setHostSessionLimit] = useState<{
     limit_reached: boolean
     reset_time: string
   } | null>(null)
 
   useEffect(() => {
-    const checkSessionLimit = async () => {
+    const checkSessionLimits = async () => {
       try {
-        const response = await quiz.checkSessionLimit()
-        setSessionLimit(response.data)
+        const [personalResponse, hostResponse] = await Promise.all([
+          quiz.checkSessionLimit(),
+          quiz.checkHostSessionLimit()
+        ])
+        setPersonalSessionLimit(personalResponse.data)
+        setHostSessionLimit(hostResponse.data)
       } catch (err) {
-        console.error("Failed to check session limit:", err)
+        console.error("Failed to check session limits:", err)
       }
     }
-    checkSessionLimit()
+    checkSessionLimits()
   }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -214,7 +222,12 @@ export default function CreateQuiz() {
           <div
             className={`bg-white rounded-xl shadow-lg p-8 transition-all duration-300 transform hover:shadow-xl ${isLoading ? "relative" : ""}`}
           >
-            {sessionLimit?.limit_reached && <SessionLimitMessage resetTime={sessionLimit.reset_time} type="general" />}
+            {(personalSessionLimit?.limit_reached && hostSessionLimit?.limit_reached) && (
+              <SessionLimitMessage 
+                resetTime={personalSessionLimit.reset_time} 
+                type="general" 
+              />
+            )}
 
             {/* Processing Overlay */}
             {isLoading && (
@@ -265,7 +278,7 @@ export default function CreateQuiz() {
 
             {/* Form Content - Blurred when loading or limit reached */}
             <div
-              className={`transition-all duration-300 ${isLoading || (sessionLimit?.limit_reached === true) ? "blur-sm pointer-events-none" : ""}`}
+              className={`transition-all duration-300 ${isLoading || (personalSessionLimit?.limit_reached === true || hostSessionLimit?.limit_reached === true) ? "blur-sm pointer-events-none" : ""}`}
             >
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="space-y-3">
@@ -348,9 +361,9 @@ export default function CreateQuiz() {
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div
-                      onClick={() => !isLoading && prompt.trim() && setSessionType("personal")}
+                      onClick={() => !isLoading && prompt.trim() && !personalSessionLimit?.limit_reached && setSessionType("personal")}
                       className={`relative cursor-pointer rounded-lg border p-4 transition-all duration-200 hover:shadow-md ${
-                        !prompt.trim() || isLoading ? "opacity-50 cursor-not-allowed" : ""
+                        !prompt.trim() || isLoading || personalSessionLimit?.limit_reached ? "opacity-50 cursor-not-allowed" : ""
                       } ${
                         sessionType === "personal"
                           ? "border-indigo-300 bg-indigo-50 ring-2 ring-indigo-500 ring-opacity-30"
@@ -374,6 +387,11 @@ export default function CreateQuiz() {
                             Personal Quiz
                           </h3>
                           <p className="text-xs text-gray-500 mt-1">Take the quiz by yourself</p>
+                          {personalSessionLimit?.limit_reached && (
+                            <p className="text-xs text-red-500 mt-1">
+                              Session limit reached. Resets at {new Date(personalSessionLimit.reset_time).toLocaleTimeString()}
+                            </p>
+                          )}
                         </div>
                       </div>
                       <div
@@ -385,9 +403,9 @@ export default function CreateQuiz() {
                     </div>
 
                     <div
-                      onClick={() => !isLoading && prompt.trim() && setSessionType("host")}
+                      onClick={() => !isLoading && prompt.trim() && !hostSessionLimit?.limit_reached && setSessionType("host")}
                       className={`relative cursor-pointer rounded-lg border p-4 transition-all duration-200 hover:shadow-md ${
-                        !prompt.trim() || isLoading ? "opacity-50 cursor-not-allowed" : ""
+                        !prompt.trim() || isLoading || hostSessionLimit?.limit_reached ? "opacity-50 cursor-not-allowed" : ""
                       } ${
                         sessionType === "host"
                           ? "border-indigo-300 bg-indigo-50 ring-2 ring-indigo-500 ring-opacity-30"
@@ -411,6 +429,11 @@ export default function CreateQuiz() {
                             Host a Quiz
                           </h3>
                           <p className="text-xs text-gray-500 mt-1">Invite others to join</p>
+                          {hostSessionLimit?.limit_reached && (
+                            <p className="text-xs text-red-500 mt-1">
+                              Session limit reached. Resets at {new Date(hostSessionLimit.reset_time).toLocaleTimeString()}
+                            </p>
+                          )}
                         </div>
                       </div>
                       <div

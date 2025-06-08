@@ -142,6 +142,14 @@ export const quiz = {
     });
     return response;
   },
+  checkHostSessionLimit: async () => {
+    const response = await api.get('/questions/check-hostedsession-limit', {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+      },
+    });
+    return response;
+  },
   checkResumeSessionLimit: async () => {
     const response = await api.get('/quiz-resume/check-session-limit', {
       headers: {
